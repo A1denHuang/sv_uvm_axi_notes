@@ -247,6 +247,7 @@ if (pending.exists(addr))
 - 某TPU公司 · 数字IC验证 · 校招（function 与 task 的区别）
 - 豪威科技 · 数字IC验证 · 校招 · 一面（task vs function：区别 + 参数输入类型）
 - 通用 · 数字IC验证 · 实习 · 基础面经（function 与 task 的区别）
+- ArmChina · 数字IC设计验证 · 校招 · 三面（task 和 function 区别）
 - 面试书《Cracking Digital VLSI Verification Interview》· 第4章 Q17（对应题目：task 与 function 的区别）
 
 **考点**
@@ -317,6 +318,7 @@ int result = calc(.b(4), .a(3));       // 按名传参
 **题目来源**
 
 - 泰凌微 · 数字IC验证 · 校招 · 一面（interface 的作用与使用场景）
+- 乐鑫科技 · 数字IC验证 · 校招 · 一面（interface 和 DUT 连接）
 - 面试书《Cracking Digital VLSI Verification Interview》· 第4章 Q41（对应题目：接口 interface）
 
 **考点**
@@ -391,6 +393,8 @@ endinterface
 **题目来源**
 
 - 字节跳动 · 数字IC验证 · 实习 · 高频题（virtual interface 的作用，相关差异，没有 virtual interface 能否实现对应功能）
+- 蔚来 · AI计算芯片验证 · 校招 · 一面（interface 传递至组件的方式、传递层级以及不能传递真实物理接口的原因）
+- 字节跳动 · AI芯片研发 · 校招 · 一面（config_db 中 virtual 的用途）
 - 面试书《Cracking Digital VLSI Verification Interview》· 第4章 Q81（对应题目：虚拟接口 virtual interface）
 
 **考点**
@@ -461,6 +465,7 @@ if (!pkt.randomize())
 
 - 泰凌微 · 数字IC验证 · 校招 · 一面（常用约束关键字：inside、unique、solve before 的用法）
 - 豪威科技 · 数字IC验证 · 校招 · 一面（constraint 中 dist 的几种权重约束）
+- 乐鑫科技 · 数字IC验证 · 校招 · 一面（约束变量权重分配）
 - 面试书《Cracking Digital VLSI Verification Interview》· 第4章 Q49（对应题目：unique 约束）
 
 **考点**
@@ -744,6 +749,7 @@ mbx.get(pkt);
 
 - 小鹏汽车 · SOC验证 · 校招（virtual function/task 未声明 virtual 会出现什么问题）
 - 芯动科技 · 数字IC验证 · 校招（讲解多态时结合 virtual 关键字说明子类重写）
+- 字节跳动 · AI芯片研发 · 校招 · 一面（父类子类句柄关系；virtual 实现多态）
 - 面试书《Cracking Digital VLSI Verification Interview》· 第4章 Q74-Q76（对应题目：派生类覆盖是否必须加 virtual；基类句柄指向派生类对象；virtual 函数的调用顺序）
 
 **考点**
@@ -780,6 +786,7 @@ b.print();
 
 - 小鹏汽车 · IP验证 · 校招（代码覆盖率与功能覆盖率的分类，是否做过断言验证）
 - 芯原 · 数字IC验证 · 校招（功能覆盖率与代码覆盖率的区别）
+- 地平线 · 数字IC验证 · 校招（功能覆盖率与代码覆盖率区别）
 - 面试书《Cracking Digital VLSI Verification Interview》· 第6章 Q100（对应题目：代码覆盖率与功能覆盖率的区别）
 
 **考点**
@@ -921,6 +928,7 @@ coverpoint state {
 **题目来源**
 
 - 某TPU公司 · 数字IC验证 · 校招（代码覆盖率高是否代表功能覆盖率一定高；代码覆盖率高但功能覆盖率低的场景分析方法）
+- 达摩院 · 数字IC验证 · 校招 · 二面（不同覆盖率矛盾场景：高代码覆盖率低功能覆盖率、低代码覆盖率高功能覆盖率）
 - 面试书《Cracking Digital VLSI Verification Interview》· 第6章 Q102、Q103（对应题目：高功能+低代码说明什么；高代码+低功能说明什么）
 
 **考点**

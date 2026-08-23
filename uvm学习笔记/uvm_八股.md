@@ -6,42 +6,171 @@
 
 ## 目录
 
-- [第3章 UVM 基础（Q1-Q9）](#第3章-uvm-基础q1-q9)
-  - [1. uvm_object 与 uvm_component 的区别](#1-uvm_object-与-uvm_component-的区别)
-  - [2. config_db 完成 set 后，若源变量发生变化，get 到的值是否同步更新？](#2-config_db-完成-set-后若源变量发生变化get-到的值是否同步更新)
-  - [3. uvm_info 的消息等级分类](#3-uvm_info-的消息等级分类)
-  - [4. config_db 的四个参数是什么？](#4-config_db-的四个参数是什么)
-  - [5. 描述 UVM 的树形结构](#5-描述-uvm-的树形结构)
-  - [6. 多个组件对同一个配置 set，最终谁生效？](#6-多个组件对同一个配置-set最终谁生效)
-  - [7. config_db 字段名前缀匹配（agt_* 的坑）](#7-config_db-字段名前缀匹配agt_-的坑)
-  - [8. config_db 的 set/get 层级匹配规则](#8-config_db-的-setget-层级匹配规则)
-  - [9. uvm_component 的生命周期](#9-uvm_component-的生命周期)
-- [第4章 TLM 通信（Q10-Q11）](#第4章-tlm-通信q10-q11)
-  - [10. TLM 中 PORT、EXPORT、IMP 的区别？](#10-tlm-中-port-export-imp-的区别)
-  - [11. 验证环境中为什么用 tlm_fifo？它解决了什么问题？](#11-验证环境中为什么用-tlm_fifo它解决了什么问题)
-- [第5章 phase 与 objection（Q12-Q17）](#第5章-phase-与-objectionq12-q17)
-  - [12. UVM 的 phase 分为哪两大类？](#12-uvm-的-phase-分为哪两大类)
-  - [13. UVM phase 的总体执行顺序与 run_test 的起点](#13-uvm-phase-的总体执行顺序与-run_test-的起点)
-  - [14. run_phase 与 main_phase 的区别](#14-run_phase-与-main_phase-的区别)
-  - [15. 为什么 build_phase 是自顶向下执行？](#15-为什么-build_phase-是自顶向下执行)
-  - [16. 运行中检测到复位，如何跳回 reset_phase？（phase jump）](#16-运行中检测到复位如何跳回-reset_phase-phase-jump)
-  - [17. UVM 的 objection 机制是什么？有什么用？](#17-uvm-的-objection-机制是什么有什么用)
-- [第6章 sequence（Q18-Q26）](#第6章-sequenceq18-q26)
-  - [18. seq.start() 与 start_item/finish_item 的区别？](#18-seqstart-与-start_itemfinish_item-的区别)
-  - [19. driver 与 sequencer 的握手机制？](#19-driver-与-sequencer-的握手机制)
-  - [20. sequence 的生命周期回调有哪些？顺序是什么？](#20-sequence-的生命周期回调有哪些顺序是什么)
-  - [21. m_sequencer 与 p_sequencer 的区别？](#21-m_sequencer-与-p_sequencer-的区别)
-  - [22. 使用 uvm_do 宏时 sequence 会不会阻塞？](#22-使用-uvm_do-宏时-sequence-会不会阻塞)
-  - [23. sequence 脱离 sequencer 时，如何直接向 driver 发送激励？](#23-sequence-脱离-sequencer-时如何直接向-driver-发送激励)
-  - [24. virtual sequence 是什么？和普通 sequence 有什么区别？如何协调多个 sequencer？](#24-virtual-sequence-是什么和普通-sequence-有什么区别如何协调多个-sequencer)
-  - [25. sequence 如何获取组件的配置（config_db）？](#25-sequence-如何获取组件的配置config_db)
-  - [26. driver 如何向 sequence 返回 rsp？（response 机制）](#26-driver-如何向-sequence-返回-rspresponse-机制)
+- [第2章 验证平台的组成（Q1-Q4）](#第2章-验证平台的组成q1-q4)
+  - [1. 验证平台的基本组成是什么？各组件之间如何配合？](#1-验证平台的基本组成是什么各组件之间如何配合)
+  - [2. monitor 的作用是什么？验证环境能否省略 monitor？](#2-monitor-的作用是什么验证环境能否省略-monitor)
+  - [3. run_test() 是如何启动整个 UVM 平台的？](#3-run_test-是如何启动整个-uvm-平台的)
+  - [4. agent 是什么？包含哪些组件？可以配置什么？](#4-agent-是什么包含哪些组件可以配置什么)
+- [第3章 UVM 基础（Q5-Q13）](#第3章-uvm-基础q5-q13)
+  - [5. uvm_object 与 uvm_component 的区别](#5-uvm_object-与-uvm_component-的区别)
+  - [6. config_db 完成 set 后，若源变量发生变化，get 到的值是否同步更新？](#6-config_db-完成-set-后若源变量发生变化get-到的值是否同步更新)
+  - [7. uvm_info 的消息等级分类](#7-uvm_info-的消息等级分类)
+  - [8. config_db 的四个参数是什么？](#8-config_db-的四个参数是什么)
+  - [9. 描述 UVM 的树形结构](#9-描述-uvm-的树形结构)
+  - [10. 多个组件对同一个配置 set，最终谁生效？](#10-多个组件对同一个配置-set最终谁生效)
+  - [11. config_db 字段名前缀匹配（agt_* 的坑）](#11-config_db-字段名前缀匹配agt_-的坑)
+  - [12. config_db 的 set/get 层级匹配规则](#12-config_db-的-setget-层级匹配规则)
+  - [13. uvm_component 的生命周期](#13-uvm_component-的生命周期)
+- [第4章 TLM 通信（Q14-Q15）](#第4章-tlm-通信q14-q15)
+  - [14. TLM 中 PORT、EXPORT、IMP 的区别？](#14-tlm-中-port-export-imp-的区别)
+  - [15. 验证环境中为什么用 tlm_fifo？它解决了什么问题？](#15-验证环境中为什么用-tlm_fifo它解决了什么问题)
+- [第5章 phase 与 objection（Q16-Q21）](#第5章-phase-与-objectionq16-q21)
+  - [16. UVM 的 phase 分为哪两大类？](#16-uvm-的-phase-分为哪两大类)
+  - [17. UVM phase 的总体执行顺序与 run_test 的起点](#17-uvm-phase-的总体执行顺序与-run_test-的起点)
+  - [18. run_phase 与 main_phase 的区别](#18-run_phase-与-main_phase-的区别)
+  - [19. 为什么 build_phase 是自顶向下执行？](#19-为什么-build_phase-是自顶向下执行)
+  - [20. 运行中检测到复位，如何跳回 reset_phase？（phase jump）](#20-运行中检测到复位如何跳回-reset_phase-phase-jump)
+  - [21. UVM 的 objection 机制是什么？有什么用？](#21-uvm-的-objection-机制是什么有什么用)
+- [第6章 sequence（Q22-Q30）](#第6章-sequenceq22-q30)
+  - [22. seq.start() 与 start_item/finish_item 的区别？](#22-seqstart-与-start_itemfinish_item-的区别)
+  - [23. driver 与 sequencer 的握手机制？](#23-driver-与-sequencer-的握手机制)
+  - [24. sequence 的生命周期回调有哪些？顺序是什么？](#24-sequence-的生命周期回调有哪些顺序是什么)
+  - [25. m_sequencer 与 p_sequencer 的区别？](#25-m_sequencer-与-p_sequencer-的区别)
+  - [26. 使用 uvm_do 宏时 sequence 会不会阻塞？](#26-使用-uvm_do-宏时-sequence-会不会阻塞)
+  - [27. sequence 脱离 sequencer 时，如何直接向 driver 发送激励？](#27-sequence-脱离-sequencer-时如何直接向-driver-发送激励)
+  - [28. virtual sequence 是什么？和普通 sequence 有什么区别？如何协调多个 sequencer？](#28-virtual-sequence-是什么和普通-sequence-有什么区别如何协调多个-sequencer)
+  - [29. sequence 如何获取组件的配置（config_db）？](#29-sequence-如何获取组件的配置config_db)
+  - [30. driver 如何向 sequence 返回 rsp？（response 机制）](#30-driver-如何向-sequence-返回-rspresponse-机制)
 
 ---
 
-## 第3章 UVM 基础（Q1-Q9）
+## 第2章 验证平台的组成（Q1-Q4）
 
-### 1. uvm_object 与 uvm_component 的区别
+### 1. 验证平台的基本组成是什么？各组件之间如何配合？
+
+**题目来源**
+
+- 达摩院 · 数字IC验证 · 校招 · 一面（凉经）（Testbench 的基本组成）
+- 小米 · 数字IC验证 · 实习（简单 UVM 平台包含的组件；各组件之间的配合逻辑）
+- 海光 · 数字IC验证 · 校招（验证平台结构与数据流向）
+- 昆仑芯 · 数字IC验证 · 校招 · 一面（UVM 有哪些组件）
+- 地平线 · 数字IC验证 · 校招（UVM 的 Driver、Sequencer、Monitor、Agent 四大组件各自功能）
+- 蔚来 · AI计算芯片验证 · 校招 · 一面（验证环境组件与构建顺序）
+- 字节跳动 · AI芯片研发 · 校招 · 一面（sequence 和 monitor 的数据传输方式）
+- 面试书《Cracking Digital VLSI Verification Interview》· 第6章 Q12-Q13、Q17、Q18（对应题目：Agent 包含哪些组件；sequencer 和 driver 是什么；monitor 与 scoreboard 的区别）
+
+**考点**
+
+- 平台组件清单与各自职责
+- 激励链与检查链的数据流向
+
+**参考答案**
+
+验证平台按职责分三块：**激励、检查、容器**。
+
+**第一，激励侧有三个组件。** sequence 负责造激励，它是事务级的；sequencer 负责仲裁和转发，把 sequence 的事务派给 driver；driver 负责把事务翻译成 DUT 引脚信号，是激励侧唯一直接跟信号打交道的组件。
+
+**第二，检查侧也有三个。** monitor 观察 DUT 接口，把信号采回来转成事务；reference model 用高级模型算期望值；scoreboard 把期望值和实际值比对，判断对错。
+
+**第三，容器侧负责装。** agent 把同一个接口的 driver、sequencer、monitor 打包；env 装多个 agent 和 scoreboard；test 负责选测试场景、配环境。
+
+**第四，数据流向。** sequence 造的事务 → sequencer 派给 driver → driver 打信号进 DUT → monitor 采出来 → scoreboard 和 reference model 的输出比对。
+
+| 组件 | 一句话职责 |
+|------|-----------|
+| sequence | 造激励 |
+| sequencer | 仲裁转发 |
+| driver | 信号级驱动 |
+| monitor | 采样转事务 |
+| reference model | 算期望 |
+| scoreboard | 比对判对错 |
+
+> 一句话：**激励链管"发"，检查链管"查"，agent/env/test 管"装"。**
+
+---
+
+### 2. monitor 的作用是什么？验证环境能否省略 monitor？
+
+**题目来源**
+
+- 某公司 · 数字IC验证 · 校招 · 一面（monitor 采样数据流向，验证环境能否省略 monitor）
+- 面试书《Cracking Digital VLSI Verification Interview》· 第6章 Q18（对应题目：monitor 与 scoreboard 的区别）
+
+**考点**
+
+- monitor 的采样与事务转换
+- 实际数据来源对检查的必要性
+
+**参考答案**
+
+**monitor 是验证环境的"眼睛"，作用是观察和转换。**
+
+**第一，它只采样、不驱动。** 它盯着 DUT 接口信号，把引脚级活动翻译成事务，再从 analysis 端口广播出去，scoreboard 和覆盖率模块都是它的订阅者。
+
+**第二，不能省略。** 因为没有 monitor 就没有"实际数据"来源——scoreboard 拿什么比对？覆盖率也采不到。省了它等于闭着眼验证。
+
+**第三，什么时候看着像能省。** 用了 VIP 自带的 monitor、或者只发激励不检查的 smoke 测试，这时候确实用不到自己的 monitor；但正规验证环境它是必须的。
+
+> 一句话：**monitor 是"眼睛"——把 DUT 行为翻译成事务供检查；省了它等于闭着眼验证。**
+
+---
+
+### 3. run_test() 是如何启动整个 UVM 平台的？
+
+**题目来源**
+
+- 字节跳动 · 数字IC验证 · 实习 · 高频题（在 TB 中调用 run_test 后触发整个 UVM 平台执行的原理）
+- 墨芯 · 数字IC验证 · 校招（case package 中多 case 场景下，UVM 通过命令行指定启动 case 的底层原理）
+- 面试书《Cracking Digital VLSI Verification Interview》· 第6章 Q19（对应题目：run_test 如何启动 testbench）
+
+**考点**
+
+- run_test 创建测试与触发 phase
+- 从哪个 phase 开始
+
+**参考答案**
+
+**run_test 是 UVM 的总开关**，写在顶层 module 的 initial 块里，参数是测试类名。它主要干三件事：
+
+**第一，创建测试。** 按名字用 factory 创建 test 对象，挂到 uvm_test_top 下面。
+
+**第二，触发整个 phase 流程。** 从 build_phase 开始自顶向下建树——test 建 env、env 建 agent、agent 建 driver/monitor/sequencer；然后 connect 连线，run 跑激励，最后 extract、check、report、final 收尾。
+
+**第三，空参可以读命令行。** 写 run_test() 不传参，就从 `+UVM_TEST_NAME` 读测试名——回归的时候批量换测试，代码都不用改。
+
+> 一句话：**run_test 创建测试并触发整个 phase 流程——build 建树、connect 接线、run 运行、check/report 收尾。**
+
+---
+
+### 4. agent 是什么？包含哪些组件？可以配置什么？
+
+**题目来源**
+
+- 中茵微 · 数字IC验证 · 校招 · 一面（agent 支持的可配置选项，可配置设计的目的）
+- 面试书《Cracking Digital VLSI Verification Interview》· 第6章 Q12-Q13、Q15-Q16（对应题目：Agent 可以包含哪些组件；如何把 agent 配置为 ACTIVE 或 PASSIVE）
+
+**考点**
+
+- agent 的组件构成
+- is_active 配置与复用意义
+
+**参考答案**
+
+**agent 是把同一个接口上干活的组件打包**——driver、sequencer、monitor，外加一个配置对象。接口一样的 agent，换个环境、换个项目都能复用。
+
+**第一，包含什么，看 is_active。** `UVM_ACTIVE` 就建 driver 和 sequencer，要发激励；`UVM_PASSIVE` 只留 monitor，只观察不发。
+
+**第二，还能配什么。** 接口句柄 vif、协议参数（位宽、时序这些）。
+
+**第三，为什么要设计成可配置。** 同一个 agent，块级验证要发激励就配 ACTIVE，芯片级只监视就配 PASSIVE——不改代码，只改配置就能复用，这就是可配置的意义。
+
+> 一句话：**agent = 同接口组件包；is_active 决定建不建 driver+sequencer，是它最重要的配置项。**
+
+---
+
+## 第3章 UVM 基础（Q5-Q13）
+
+### 5. uvm_object 与 uvm_component 的区别
 
 **题目来源**
 
@@ -83,7 +212,7 @@ uvm_component 和 uvm_object 不是并列关系，**uvm_component 继承自 uvm_
 
 ---
 
-### 2. config_db 完成 set 后，若源变量发生变化，get 到的值是否同步更新？
+### 6. config_db 完成 set 后，若源变量发生变化，get 到的值是否同步更新？
 
 **题目来源**
 
@@ -110,7 +239,7 @@ uvm_component 和 uvm_object 不是并列关系，**uvm_component 继承自 uvm_
 
 ---
 
-### 3. uvm_info 的消息等级分类
+### 7. uvm_info 的消息等级分类
 
 **题目来源**
 
@@ -148,7 +277,7 @@ uvm_component 和 uvm_object 不是并列关系，**uvm_component 继承自 uvm_
 
 ---
 
-### 4. config_db 的四个参数是什么？
+### 8. config_db 的四个参数是什么？
 
 **题目来源**
 
@@ -181,7 +310,7 @@ get 时也是四个参数：当前组件、空串（表示自己）、字段名�
 
 ---
 
-### 5. 描述 UVM 的树形结构
+### 9. 描述 UVM 的树形结构
 
 **题目来源**
 
@@ -206,7 +335,7 @@ UVM 用一棵**组件树**管理整个验证平台，**真正的根是 uvm_top�
 
 ---
 
-### 6. 多个组件对同一个配置 set，最终谁生效？
+### 10. 多个组件对同一个配置 set，最终谁生效？
 
 **题目来源**
 
@@ -233,7 +362,7 @@ UVM 用一棵**组件树**管理整个验证平台，**真正的根是 uvm_top�
 
 ---
 
-### 7. config_db 字段名前缀匹配（agt_* 的坑）
+### 11. config_db 字段名前缀匹配（agt_* 的坑）
 
 **题目来源**
 
@@ -257,7 +386,7 @@ config_db 的字段名支持**通配符前缀匹配**。如果 set 时字段名�
 
 ---
 
-### 8. config_db 的 set/get 层级匹配规则
+### 12. config_db 的 set/get 层级匹配规则
 
 **题目来源**
 
@@ -284,7 +413,7 @@ set 和 get 要能对上，需要**四个条件同时满足**，缺一个 get �
 
 ---
 
-### 9. uvm_component 的生命周期
+### 13. uvm_component 的生命周期
 
 **题目来源**
 
@@ -313,9 +442,9 @@ component 的生命周期由 **UVM 的 phase 机制**管理，分**构建、运�
 
 ---
 
-## 第4章 TLM 通信（Q10-Q11）
+## 第4章 TLM 通信（Q14-Q15）
 
-### 10. TLM 中 PORT、EXPORT、IMP 的区别？
+### 14. TLM 中 PORT、EXPORT、IMP 的区别？
 
 **题目来源**
 
@@ -348,7 +477,7 @@ TLM 是事务级建模，让组件之间通过标准端口交换 transaction，�
 
 ---
 
-### 11. 验证环境中为什么用 tlm_fifo？它解决了什么问题？
+### 15. 验证环境中为什么用 tlm_fifo？它解决了什么问题？
 
 **题目来源**
 
@@ -380,14 +509,16 @@ tlm_fifo 本质是组件之间的"中间仓库"：发送方把 transaction 存�
 
 ---
 
-## 第5章 phase 与 objection（Q12-Q17）
+## 第5章 phase 与 objection（Q16-Q21）
 
-### 12. UVM 的 phase 分为哪两大类？
+### 16. UVM 的 phase 分为哪两大类？
 
 **题目来源**
 
 - 中兴通讯 · 数字IC验证 · 校招 · 领军计划（耗时与不耗时 phase 的区分）
 - 海光 · 数字IC验证 · 校招 · NoC方向（UVM 核心 phase 的分类与简要介绍）
+- 蔚来 · AI计算芯片验证 · 校招 · 一面（uvm phase 机制完整分类以及可放置延时的 phase）
+- 泰凌微 · 数字IC验证 · 校招 · 一面二面（uvm phase 机制）
 - 面试书《Cracking Digital VLSI Verification Interview》· 第6章 Q55（对应题目：UVM 组件有哪些 phase；run_phase 有哪些子 phase）
 
 **考点**
@@ -414,7 +545,7 @@ UVM 的 phase 分两大类，分水岭是**能不能耗仿真时间**：
 
 ---
 
-### 13. UVM phase 的总体执行顺序与 run_test 的起点
+### 17. UVM phase 的总体执行顺序与 run_test 的起点
 
 **题目来源**
 
@@ -441,7 +572,7 @@ UVM 的 phase 分两大类，分水岭是**能不能耗仿真时间**：
 
 ---
 
-### 14. run_phase 与 main_phase 的区别
+### 18. run_phase 与 main_phase 的区别
 
 **题目来源**
 
@@ -449,6 +580,7 @@ UVM 的 phase 分两大类，分水岭是**能不能耗仿真时间**：
 - 芯动科技 · 数字IC验证 · 校招（run_phase 与 main_phase 的区别）
 - 小鹏汽车 · SOC验证 · 校招（区别；main_phase 写了 raise_objection 而 run_phase 没写，run_phase 能否正常运行）
 - 某TPU公司 · 数字IC验证 · 校招（两者关系；main_phase 里 raise/drop objection 时 run_phase 是否继续执行）
+- 蔚来 · AI计算芯片验证 · 校招 · 一面（run phase 和 main phase 能否同时使用）
 - 面试书《Cracking Digital VLSI Verification Interview》· 第6章 Q55（对应题目：run_phase 的 12 个子 phase，含 main）
 
 **考点**
@@ -473,7 +605,7 @@ UVM 的 phase 分两大类，分水岭是**能不能耗仿真时间**：
 
 ---
 
-### 15. 为什么 build_phase 是自顶向下执行？
+### 19. 为什么 build_phase 是自顶向下执行？
 
 **题目来源**
 
@@ -504,7 +636,7 @@ build_phase 自顶向下是**因果必然**，不是约定：phase 调度器调�
 
 ---
 
-### 16. 运行中检测到复位，如何跳回 reset_phase？（phase jump）
+### 20. 运行中检测到复位，如何跳回 reset_phase？（phase jump）
 
 **题目来源**
 
@@ -533,10 +665,11 @@ build_phase 自顶向下是**因果必然**，不是约定：phase 调度器调�
 
 ---
 
-### 17. UVM 的 objection 机制是什么？有什么用？
+### 21. UVM 的 objection 机制是什么？有什么用？
 
 **题目来源**
 
+- 蔚来 · AI计算芯片验证 · 校招 · 一面（objection 机制）
 - 面试书《Cracking Digital VLSI Verification Interview》· 第6章 Q52（对应题目：什么是 objection？有什么用？）
 - 小鹏汽车 · SOC验证 · 校招（main_phase 写了 raise_objection 而 run_phase 没写，run_phase 能否正常运行）
 - 某TPU公司 · 数字IC验证 · 校招（main_phase 里 raise/drop objection 时 run_phase 是否继续执行）
@@ -566,9 +699,9 @@ objection 是 UVM 用来**控制 task phase 何时结束**的机制，本质是�
 
 ---
 
-## 第6章 sequence（Q18-Q26）
+## 第6章 sequence（Q22-Q30）
 
-### 18. seq.start() 与 start_item/finish_item 的区别？
+### 22. seq.start() 与 start_item/finish_item 的区别？
 
 **题目来源**
 
@@ -595,7 +728,7 @@ objection 是 UVM 用来**控制 task phase 何时结束**的机制，本质是�
 
 ---
 
-### 19. driver 与 sequencer 的握手机制？
+### 23. driver 与 sequencer 的握手机制？
 
 **题目来源**
 
@@ -605,6 +738,7 @@ objection 是 UVM 用来**控制 task phase 何时结束**的机制，本质是�
 - 泰凌微 · 数字IC验证 · 校招 · 一面（driver 向 sequence 传递 item 的方式）
 - 燧原科技 · 数字IC验证 · 校招 · AI方向（sequence、driver、sequencer 三者工作交互逻辑）
 - 某公司 · 数字IC验证 · 校招 · 一面（sequencer 与 driver 交互逻辑）
+- 泰凌微 · 数字IC验证 · 校招 · 一面二面（seq 和 drv 握手）
 - 面试书《Cracking Digital VLSI Verification Interview》· 第6章 Q21（对应题目：sequencer 与 driver 之间的协议握手是怎样的）
 
 **考点**
@@ -629,7 +763,7 @@ objection 是 UVM 用来**控制 task phase 何时结束**的机制，本质是�
 
 ---
 
-### 20. sequence 的生命周期回调有哪些？顺序是什么？
+### 24. sequence 的生命周期回调有哪些？顺序是什么？
 
 **题目来源**
 
@@ -658,13 +792,15 @@ sequence 启动后有五个回调按固定顺序执行：pre_start、pre_body、
 
 ---
 
-### 21. m_sequencer 与 p_sequencer 的区别？
+### 25. m_sequencer 与 p_sequencer 的区别？
 
 **题目来源**
 
 - 平头哥 · 数字IC验证 · 校招 · 一面（凉经）（p_sqr 与 m_sqr 的区别）
 - 达摩院 · 数字IC验证 · 校招 · 一面（凉经）（m sequencer 与 p sequencer 的区别；p sequencer 的定义与用途）
 - 某TPU公司 · 数字IC验证 · 校招（m_sequencer 与 p_sequencer 的关系）
+- 海光 · 数字IC验证 · 校招（m_sequencer 和 p_sequencer 的区别及转化方式）
+- 乐鑫科技 · 数字IC验证 · 校招 · 一面（m_sequencer 与 p_sequencer）
 - 面试书《Cracking Digital VLSI Verification Interview》· 第6章 Q30-Q31（对应题目：m_sequencer 与 p_sequencer 是什么？有何区别）
 
 **考点**
@@ -685,7 +821,7 @@ sequence 启动后有五个回调按固定顺序执行：pre_start、pre_body、
 
 ---
 
-### 22. 使用 uvm_do 宏时 sequence 会不会阻塞？
+### 26. 使用 uvm_do 宏时 sequence 会不会阻塞？
 
 **题目来源**
 
@@ -712,7 +848,7 @@ sequence 启动后有五个回调按固定顺序执行：pre_start、pre_body、
 
 ---
 
-### 23. sequence 脱离 sequencer 时，如何直接向 driver 发送激励？
+### 27. sequence 脱离 sequencer 时，如何直接向 driver 发送激励？
 
 **题目来源**
 
@@ -738,7 +874,7 @@ sequence 启动后有五个回调按固定顺序执行：pre_start、pre_body、
 
 ---
 
-### 24. virtual sequence 是什么？和普通 sequence 有什么区别？如何协调多个 sequencer？
+### 28. virtual sequence 是什么？和普通 sequence 有什么区别？如何协调多个 sequencer？
 
 **题目来源**
 
@@ -747,6 +883,10 @@ sequence 启动后有五个回调按固定顺序执行：pre_start、pre_body、
 - 合见工软 · 数字IC验证 · 校招 · 一面（virtual sequence 与物理接口的连接方法）
 - 达摩院 · 数字IC验证 · 校招 · 一面（凉经）（virtual sequencer 与 virtual sequence 的用法）
 - 兆易创新 · 数字IC验证 · 校招（virtual sequence 内激励在随机化时如何同步）
+- 达摩院 · 数字IC验证 · 校招 · 二面（virtual sequencer 和 virtual sequence 的作用）
+- 蔚来 · AI计算芯片验证 · 校招 · 一面（virtual sequence/sequencer 原理与使用意义）
+- ArmChina · 数字IC设计验证 · 校招 · 三面（virtual sequence 和 sequence 区别）
+- 泰凌微 · 数字IC验证 · 校招 · 一面二面（virtual sequence）
 - 面试书《Cracking Digital VLSI Verification Interview》· 第6章 Q43（对应题目：什么是 virtual sequence？有什么好处）
 
 **考点**
@@ -769,7 +909,7 @@ virtual sequence 是**自己不产生激励的 sequence**——body 里启动多
 
 ---
 
-### 25. sequence 如何获取组件的配置（config_db）？
+### 29. sequence 如何获取组件的配置（config_db）？
 
 **题目来源**
 
@@ -796,7 +936,7 @@ sequence 是 uvm_object，不在组件树上、没有自己的路径，而 confi
 
 ---
 
-### 26. driver 如何向 sequence 返回 rsp？（response 机制）
+### 30. driver 如何向 sequence 返回 rsp？（response 机制）
 
 **题目来源**
 
