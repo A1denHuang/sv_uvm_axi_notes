@@ -10,7 +10,7 @@
 - 🛠️ **Linux/Shell/Vim/Makefile/Git 学习笔记**：开发工具
 - 🎯 **面试八股**：SV / UVM / AXI 高频考点（持续积累）
 - 📄 **面试书笔记**：《Cracking Digital VLSI Verification Interview》整理
-- 📝 **校招面经**：57 篇数字IC验证面试经验（持续更新）
+- 📝 **校招面经**：70 篇数字IC验证面试经验（持续更新）
 - 🧩 **场景设计**：模块验证方案、feature 拆分、测试点分解、故障排查（面试隐藏重点）
 - ✍️ **笔试真题**：各公司笔试记录与高频考点归纳
 - 🖥️ **手撕代码**：面经手撕题目整理（RTL / 约束 / UVM / 覆盖率 / 线程OOP）
@@ -48,11 +48,11 @@ sv_uvm_axi_notes/
 │   ├── axi-stream学习笔记.md # AXI-Stream 协议
 │   └── axi_八股.md          # AXI 八股（面试常考点积累）
 ├── Linux-Shell-Vim-Makefile-Git学习笔记/   # Linux/Shell/Vim/Makefile/Git 开发工具
-│   ├── linux学习笔记.md     # Linux 环境与常用命令
-│   ├── shell学习笔记.md     # Bash 命令与自动化脚本
-│   ├── vim学习笔记.md       # Vim 编辑器
-│   ├── makefile学习笔记.md  # GNU Make 与仿真流程
-│   └── git学习笔记.md       # Git 版本管理与协作
+│   ├── linux学习笔记.md
+│   ├── shell学习笔记.md
+│   ├── vim学习笔记.md
+│   ├── makefile学习笔记.md
+│   └── git学习笔记.md
 ├── 面试书_CrackingVLSI/ # 《Cracking Digital VLSI Verification Interview》笔记（10章）
 │   ├── 00_前言与面试准备.md
 │   ├── 01_数字逻辑设计.md
@@ -64,9 +64,9 @@ sv_uvm_axi_notes/
 │   ├── 07_版本控制.md
 │   ├── 08_逻辑推理与谜题.md
 │   └── 09_非技术与行为面试.md
-├── 面经/              # 数字IC验证面试经验（57篇，持续更新）
-├── 手撕/              # 面经手撕代码题目整理（RTL/约束/UVM/覆盖率/线程OOP，含答案）
-├── 场景/              # 场景设计题（模块验证方案/feature拆分/测试点分解/故障排查）
+├── 面经/              # 数字IC验证面试经验（70篇，持续更新）
+├── 手撕/              # 面经手撕代码题目整理
+├── 场景/              # 场景设计题
 └── 笔试/              # 各公司笔试真题与考点积累
 ```
 
