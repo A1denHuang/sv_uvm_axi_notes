@@ -11,9 +11,9 @@
 - 🎯 **面试八股**：SV / UVM / AXI 高频考点（持续积累）
 - 📄 **面试书笔记**：《Cracking Digital VLSI Verification Interview》整理
 - 📝 **校招面经**：70 篇数字IC验证面试经验（持续更新）
-- 🧩 **场景设计**：模块验证方案、feature 拆分、测试点分解、故障排查（面试隐藏重点）
+- 🧩 **场景设计**：模块验证方案、feature 拆分、测试点分解、故障排查
 - ✍️ **笔试真题**：各公司笔试记录与高频考点归纳
-- 🖥️ **手撕代码**：面经手撕题目整理（RTL / 约束 / UVM / 覆盖率 / 线程OOP）
+- 🖥️ **手撕代码**：面经手撕题目整理
 
 ## 目录
 
@@ -28,7 +28,7 @@ sv_uvm_axi_notes/
 │   ├── sv_ch7学习笔记.md    # 第7章：线程以及线程间的通信
 │   ├── sv_ch8学习笔记.md    # 第8章：面向对象编程的高级技巧
 │   ├── sv_ch9学习笔记.md    # 第9章：功能覆盖率
-│   └── sv_八股.md           # SV 八股（面试常考点积累）
+│   └── sv_八股.md
 ├── uvm学习笔记/        # UVM 实战学习笔记
 │   ├── uvm_ch1学习笔记.md   # 第1章：与 UVM 的第一次接触
 │   ├── uvm_ch2学习笔记.md   # 第2章：一个简单的 UVM 验证平台
@@ -39,15 +39,15 @@ sv_uvm_axi_notes/
 │   ├── uvm_ch7学习笔记.md   # 第7章：UVM 中的寄存器模型
 │   ├── uvm_ch8学习笔记.md   # 第8章：UVM 中的 factory 机制
 │   ├── uvm_ch9学习笔记.md   # 第9章：UVM 中代码的可重用性
-│   └── uvm_八股.md          # UVM 八股（面试常考点积累）
+│   └── uvm_八股.md
 ├── axi学习笔记/        # AMBA 总线协议学习笔记
 │   ├── apb学习笔记.md       # APB 协议
 │   ├── ahb学习笔记.md       # AHB 协议
 │   ├── axi学习笔记.md       # AXI 协议
 │   ├── axi-lite学习笔记.md  # AXI-Lite 协议
 │   ├── axi-stream学习笔记.md # AXI-Stream 协议
-│   └── axi_八股.md          # AXI 八股（面试常考点积累）
-├── Linux-Shell-Vim-Makefile-Git学习笔记/   # Linux/Shell/Vim/Makefile/Git 开发工具
+│   └── axi_八股.md
+├── Linux-Shell-Vim-Makefile-Git学习笔记/
 │   ├── linux学习笔记.md
 │   ├── shell学习笔记.md
 │   ├── vim学习笔记.md
