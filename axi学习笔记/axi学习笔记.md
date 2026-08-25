@@ -2,7 +2,7 @@
 
 > 适合读者：已经理解 AXI4-Lite 的五通道和 VALID/READY，准备学习高性能存储映射接口。
 >
-> 学习目标：解释 AXI4 读写 burst；计算 beat 地址和有效 byte lane；理解 ID、未完成事务（outstanding）、乱序返回及基本验证方法。
+> 学习目标：解释 AXI4 读写 burst；计算 beat 地址和有效 byte lane；理解 ID、未完成事务（outstanding）、乱序返回。
 
 ---
 
@@ -16,7 +16,7 @@
 - 用 ARM IHI 0022H 中的 AXI4 章节补充精确定义。
 - ARM IHI 0022 Issue L 用于对照新版术语和通用思想。它主要描述 AMBA 5，不能把其中 AXI5 专属的 opcode、atomic、tag 当成 AXI4 必选功能。
 
-> **阅读主线：** 先掌握五通道握手，再学习一个地址如何展开成多个 beat，最后理解 ID 如何把多笔 outstanding 事务区分开。
+> **阅读主线：** 先掌握五通道握手，再学习一个地址如何展开成多个 beat（burst），最后理解 ID 如何把多笔 outstanding 事务区分开。
 
 术语对照：
 
@@ -33,15 +33,11 @@
 
 AXI4 面向高带宽、低延迟、高频率的片上互连。
 
-与 APB/AXI4-Lite 相比，它增加的核心能力是：
+与 APB/AXI4-Lite 相比，它增加的核心能力可以归纳为 **3 个词**：
 
-- Burst：一个地址请求对应多个 data beat。
-- Multiple outstanding：前一笔未完成时可以继续发请求。
-- ID：区分多个逻辑事务。
-- 不同 ID 可以乱序完成。
-- 独立读写通道允许并发。
-- 地址、数据和响应通道可以插入寄存级，便于时序收敛。
-- 支持非对齐访问和 byte strobe。
+- **Burst**：一个地址请求对应多个 data beat（发 1 次地址，连传多拍）。
+- **ID**：区分多个逻辑事务（订单号）。
+- **Multiple outstanding + 乱序**：前一笔未完成时可以继续发请求，不同 ID 可以乱序完成。
 
 典型用途：
 
@@ -50,7 +46,22 @@ AXI4 面向高带宽、低延迟、高频率的片上互连。
 - 高性能加速器读写共享存储器。
 - NoC/interconnect 内部的 memory-mapped 通路。
 
-### 1.1 AXI 定义的是接口协议
+### 1.1 为什么需要 burst？（AXI-Lite 慢的本质）
+
+**AXI-Lite 慢 ≠ 每拍传得少。** AXI-Lite 每拍 = 整个数据总线宽度（32 位 = 4 字节、64 位 = 8 字节）。慢在**每一笔都重复发地址（AW/AR）+ 收响应（B/R）**——地址和响应是"空转开销"：
+
+```text
+笔1: [发地址] [传4B] [收响应]
+笔2: [发地址] [传4B] [收响应]   ← 地址响应重复几百次！
+```
+
+**burst 用"1 地址换 N 拍"把开销摊薄**：
+
+```text
+笔1: [发地址] [4B][4B]...[共256拍] [收响应]   ← 一次传 2KB
+```
+
+### 1.2 AXI 定义的是接口协议
 
 AXI 定义的是两个接口之间的信号和时序，不规定 interconnect 内部必须使用总线、crossbar 还是 NoC。
 
@@ -73,7 +84,7 @@ Master interface <--- AXI point-to-point ---> Slave interface
 
 ### 2.1 Transfer / Beat
 
-一个通道上发生一次 `VALID && READY` 握手，就是一次 transfer。
+一个通道上发生一次 `VALID && READY` 握手，就是一次 transfer（拍）。
 
 例如：
 
@@ -104,7 +115,7 @@ r_fire = RVALID && RREADY;
 
 其中 `N = AxLEN + 1`。
 
-初学者常把一个 data beat 叫成一个 transaction，之后统计 outstanding 或写 scoreboard 时就会出错。
+**初学者常把一个 data beat 叫成一个 transaction，之后统计 outstanding 时就会出错**——一个 burst（多拍数据）是一笔 transaction。
 
 ---
 
@@ -166,7 +177,7 @@ RVALID/RREADY
 | `WUSER` | 用户 sideband |
 | `WVALID/WREADY` | 写数据握手 |
 
-AXI4 没有 `WID`。写数据必须按写地址事务的发出顺序出现。
+**AXI4 没有 `WID`。** 写数据必须按写地址事务的发出顺序出现（这是与读通道最大的不对称）。
 
 ### 3.3 B 通道
 
@@ -196,17 +207,25 @@ AXI4 没有 `WID`。写数据必须按写地址事务的发出顺序出现。
 
 ```text
 AxADDR  起始地址
-AxLEN   一共有多少 beat
+AxLEN   一共有多少 beat（拍数减 1）
 AxSIZE  每个 beat 最多多少字节
 AxBURST 地址如何变化
 ```
 
+| 参数 | 类比 |
+|---|---|
+| AxLEN | 搬几个箱子 |
+| AxSIZE | 每个箱子多大 |
+| AxBURST | 箱子怎么摆 |
+
 ### 4.1 `AxLEN`
 
 ```systemverilog
-// [1] AxLEN 使用“拍数减 1”编码，所以 8'h00 代表 1 beat，8'hFF 代表 256 beats。
+// [1] AxLEN 使用"拍数减 1"编码，所以 8'h00 代表 1 beat，8'hFF 代表 256 beats。
 beats = AxLEN + 1;
 ```
+
+**为什么 +1？** 因为 0 也要能表示"传 1 拍"。
 
 例子：
 
@@ -217,11 +236,15 @@ beats = AxLEN + 1;
 | 15 | 16 |
 | 255 | 256 |
 
+**AXI4 的 AxLEN 是 8 位（0~255，最多 256 拍）**；AXI3 只有 4 位（最多 16 拍）——这是 AXI3 vs AXI4 的考点之一。
+
 AXI4 中：
 
 - INCR burst 最多 256 beat。
 - FIXED burst 最多 16 beat。
 - WRAP burst 只能是 2、4、8、16 beat。
+
+**为什么限制不同？** FIXED 地址不变、反复操作同一位置有副作用，限制防止滥用；INCR 是最规矩的访问，放最宽；WRAP 的"环"要求长度是 2 的幂，回绕边界才能对齐。
 
 ### 4.2 `AxSIZE`
 
@@ -243,16 +266,32 @@ bytes_per_beat = 1 << AxSIZE;
 
 `AxSIZE` 不能超过接口数据总线宽度。
 
-例如 64-bit 总线有 8 个 byte lane，最大合法 `AxSIZE=3`。
+**注意字节和位的换算**：64-bit 总线 = 8 字节（64÷8），最大合法 `AxSIZE=3`（2³=8 字节）。**AxSIZE 是"字节数取 2 的对数"，不是位数。**
+
+| 总线宽度 | 字节数 | AxSIZE 合法上限 |
+|---|---|---|
+| 32 位 | 4 B | 2（2²=4） |
+| 64 位 | 8 B | 3（2³=8） |
+| 128 位 | 16 B | 4 |
 
 ### 4.3 `AxBURST`
 
-| 编码 | 类型 | 地址变化 | 常见用途 |
+| 编码 | 类型 | 地址行为 | 常见用途 |
 |---|---|---|---|
-| `2'b00` | FIXED | 每 beat 地址相同 | FIFO 端口 |
-| `2'b01` | INCR | 每 beat 按 size 增加 | 普通连续内存 |
-| `2'b10` | WRAP | 达到边界后回绕 | cache line fill |
+| `2'b00` | FIXED | 每 beat 地址相同 | FIFO 端口（自动售货机：同一按钮，内容不同） |
+| `2'b01` | INCR | 每 beat 按 size 增加 | 普通连续内存（门牌号） |
+| `2'b10` | WRAP | 达到边界后回绕 | cache line fill（旋转寿司） |
 | `2'b11` | Reserved | 不允许 | - |
+
+**三种类型对比**（同一参数：4 拍、每拍 4 字节、起始 0x1008）：
+
+```text
+FIXED:  0x1008 → 0x1008 → 0x1008 → 0x1008   （地址不变）
+INCR:   0x1008 → 0x100C → 0x1010 → 0x1014   （每拍 +4）
+WRAP:   0x1008 → 0x100C → 0x1000 → 0x1004   （到 16 字节边界回绕）
+```
+
+**WRAP 为什么回绕？** 4 拍 × 4 字节 = 16 字节是一个"环"（0x1000~0x100F），走到底就绕回环头。cache 用 WRAP 实现 critical-word-first 填充：先传 CPU 要的字，再回绕补齐整行。
 
 ---
 
@@ -267,11 +306,33 @@ Burst_Length    = AxLEN + 1
 Aligned_Address = floor(Start_Address / Number_Bytes) * Number_Bytes
 ```
 
+**地址序列**：
+
+```text
+Address_1 = Start_Address（首拍用原始地址）
+Address_N = Aligned_Address + (N-1) × Number_Bytes（第 N 拍，N≥2）
+```
+
 ### 5.1 INCR burst
 
 第一拍地址就是 `Start_Address`。后续 beat 按 `Number_Bytes` 递增，非对齐首拍之后从对齐边界继续。
 
-例：
+例 1（对齐起点）：
+
+```text
+64-bit data bus
+AxADDR  = 0x1008
+AxSIZE  = 2  -> 4 bytes/beat
+AxLEN   = 3  -> 4 beats
+AxBURST = INCR
+
+拍1: 0x1008
+拍2: 0x100C
+拍3: 0x1010
+拍4: 0x1014
+```
+
+例 2（非对齐起点）：
 
 ```text
 64-bit data bus
@@ -279,18 +340,17 @@ AxADDR  = 0x1003
 AxSIZE  = 2  -> 4 bytes/beat
 AxLEN   = 3  -> 4 beats
 AxBURST = INCR
+
+Number_Bytes = 4
+Aligned_Address = floor(0x1003 / 4) * 4 = 0x1000
+
+拍1: 0x1003   ← 非对齐首拍，用原始地址
+拍2: 0x1000 + 1×4 = 0x1004
+拍3: 0x1000 + 2×4 = 0x1008
+拍4: 0x1000 + 3×4 = 0x100C
 ```
 
-概念地址序列：
-
-```text
-beat 0: 0x1003，首拍只使用从 byte lane 3 开始的合法字节
-beat 1: 0x1004
-beat 2: 0x1008
-beat 3: 0x100C
-```
-
-有效 byte lane 还要结合数据总线宽度和 `WSTRB` 判断。
+有效 byte lane 还要结合数据总线宽度和 `WSTRB` 判断（见第 6 节）。
 
 ### 5.2 FIXED burst
 
@@ -326,19 +386,23 @@ wrap boundary = 0x10
 
 ### 5.4 4KB 边界规则
 
-一个 AXI burst 不能跨越 4KB 地址边界。
+**一个 AXI burst 不能跨越 4KB 地址边界。**
+
+```text
+burst 的首地址和最后一个被访问的字节，必须在同一个 4KB 页内。
+```
 
 原因是 4KB 常是最小页或地址译码边界，跨越后可能落到不同 Slave 或不同属性区域。
 
 常用检查：
 
 ```systemverilog
-// [1] 这里只表达“首地址与最后一个被访问字节仍在同一 4KB 页”的思路。
+// [1] 这里只表达"首地址与最后一个被访问字节仍在同一 4KB 页"的思路。
 // [2] 真正计算 end_addr 时必须考虑 burst 类型、长度、size、非对齐和 wrap 行为。
 (start_addr[ADDR_WIDTH-1:12] == end_addr[ADDR_WIDTH-1:12])
 ```
 
-产生 sequence 时应约束 burst 不跨 4KB；协议错误测试则故意打破约束。
+**例**：`AxADDR=0x1FFC`，`AxSIZE=3`（8 字节），`AxLEN=3`（4 拍）→ 覆盖 0x1FFC~0x2003，末地址 0x2003 的页号（[31:12]=0x2）与首地址（0x1）不同 → **跨越 0x2000 边界，非法**。
 
 ---
 
@@ -356,7 +420,43 @@ AxSIZE=2 -> 每 beat 最多 4 bytes
 AxADDR=0x1002 -> 非对齐
 ```
 
-### 6.2 写数据由 `WSTRB` 最终限定
+**非对齐只影响首拍**：首拍从原始地址开始，只使用部分字节；从第 2 拍起地址对齐，每拍传满 SIZE 字节。
+
+### 6.2 byte lane 是什么
+
+数据总线被分成 N 个字节的"车道"（lane），每个车道放 1 字节。64 位总线 = 8 个 lane：
+
+```text
+lane 7  lane 6  lane 5  lane 4  lane 3  lane 2  lane 1  lane 0
+[63:56] [55:48] [47:40] [39:32] [31:24] [23:16] [15:8]  [7:0]
+```
+
+**地址怎么决定从哪个 lane 开始？** 地址低 log2(总线字节数) 位 = 本拍第一个字节所在的 lane 号（64 位总线看低 3 位，8 个 lane 绕一圈）。
+
+### 6.3 非对齐首拍的有效字节（两个 mod 别混）
+
+| 计算 | 用什么 | 例 0x1005 |
+|---|---|---|
+| **首拍有效字节数** = Number_Bytes - (addr mod Number_Bytes) | mod **SIZE(4)** | 4 - (0x1005 mod 4) = **3 字节** |
+| **从哪个 lane 开始** = addr mod 总线字节数 | mod **总线(8)** | 0x1005 mod 8 = **5 → lane 5** |
+
+**为什么？** 两个 mod 回答两个不同的问题：
+
+- **mod SIZE**：协议层——burst 从第 2 拍起地址对齐到 SIZE，所以首拍只能覆盖"从起始地址到下一个 SIZE 对齐边界"的字节；
+- **mod 总线字节数**：物理层——lane 是数据总线的固定车道，地址每 +1 往后挪一个车道，8 个车道绕一圈。
+
+**完整示例**：64 位总线，`AxADDR=0x1005`，`AxSIZE=2`（4 字节），`AxLEN=3`（4 拍），INCR，写方向：
+
+| 拍 | 地址 | 起点 lane | 有效 lane | WSTRB | 覆盖字节 |
+|---|---|---|---|---|---|
+| 拍1 | 0x1005 | lane 5 | lane 5~7 | `1110_0000` | 0x1005~0x1007 |
+| 拍2 | 0x1008 | lane 0 | lane 0~3 | `0000_1111` | 0x1008~0x100B |
+| 拍3 | 0x100C | lane 4 | lane 4~7 | `1111_0000` | 0x100C~0x100F |
+| 拍4 | 0x1010 | lane 0 | lane 0~3 | `0000_1111` | 0x1010~0x1013 |
+
+**验证无重叠**：总覆盖 0x1005~0x1013 = 15 字节 = 4拍×4B - 1（偏移）。每个字节恰好传一次，无重叠、无空洞。
+
+### 6.4 写数据由 `WSTRB` 最终限定
 
 `WSTRB[n]` 对应 `WDATA[8n +: 8]`。
 
@@ -364,7 +464,7 @@ Slave 只更新 strobe 为 1 的 byte lane。
 
 关键检查：`WSTRB` 不能宣称本 beat 地址范围之外的 byte lane 有效。
 
-### 6.3 窄传输
+### 6.5 窄传输
 
 64-bit 数据总线上执行 32-bit transfer：
 
@@ -373,11 +473,40 @@ data bus bytes = 8
 AxSIZE = 2 -> 4 bytes/beat
 ```
 
-根据地址低位，本 beat 使用低 4 个或高 4 个 byte lane。数据总线宽不等于每拍一定传满整条总线。
+根据地址低位，本 beat 使用低 4 个或高 4 个 byte lane。**数据总线宽不等于每拍一定传满整条总线**——每拍宽度由 `AxSIZE` 决定。
 
 ---
 
 ## 7. 写事务
+
+> **完整写事务流程（三步走）：① AW 握手（1 拍）→ ② W 握手 ×N（数据拍，WLAST 标记最后）→ ③ B 握手（1 拍响应）。**
+
+一次多拍写 burst 的完整示例：
+
+```mermaid
+sequenceDiagram
+    autonumber
+    participant M as Master
+    participant S as Slave
+    M->>S: AW(ID=2, ADDR=0x1000, LEN=3, SIZE=2)
+    M->>S: W(data0, WLAST=0)
+    M->>S: W(data1, WLAST=0)
+    M->>S: W(data2, WLAST=0)
+    M->>S: W(data3, WLAST=1) ← 最后一拍
+    S-->>M: B(BRESP=OKAY) ← 事务完成
+    Note over M,S: ① AW 握手 → ② W×N 数据 → ③ B 响应
+```
+
+```text
+AW(ID=2, ADDR=0x1000, LEN=3, SIZE=2)   ← ① 地址握手，请求 4 拍数据
+W(ID=2, data0, WLAST=0)                 ← ② 第 1 拍数据
+W(ID=2, data1, WLAST=0)                 ← ② 第 2 拍数据
+W(ID=2, data2, WLAST=0)                 ← ② 第 3 拍数据
+W(ID=2, data3, WLAST=1)                 ← ② 第 4 拍（最后一拍）
+B(ID=2, BRESP=OKAY)                     ← ③ 响应回来，事务完成
+```
+
+注意：**AXI4 的 W 通道没有 WID**（写数据按 AW 顺序归属）—— 这是与读通道最大的不对称。
 
 ### 7.1 AW 与 W 没有固定时序关系
 
@@ -411,7 +540,26 @@ w_fire = WVALID && WREADY;
 其他 W fire 时 WLAST=0
 ```
 
-### 7.3 B 响应依赖
+### 7.3 WLAST 与反压对齐
+
+**WLAST=1 必须出现在"实际握手成功（WVALID && WREADY）"的最后一拍。** 若 Slave 反压（WREADY=0）拖了几拍，WLAST 要跟着往后挪——**WLAST 跟"实际传输的拍"对齐，不跟"名义拍号"对齐**。
+
+**反压拖长的是周期数，不是拍数**：无论反压多少拍，实际握手永远是 LEN+1 次，WLAST 永远在第 LEN+1 次实际握手上。
+
+示例（AWLEN=3，中间反压 2 拍）：
+
+```text
+拍2: W d0, WLAST=0   ← 第 1 次握手
+拍3: W d1, WREADY=0  ← 反压第 1 拍（不算握手）
+拍4: W d1, WREADY=0  ← 反压第 2 拍（不算握手）
+拍5: W d1, WLAST=0   ← 第 2 次握手（补传成功）
+拍6: W d2, WLAST=0   ← 第 3 次握手
+拍7: W d3, WLAST=1   ← 第 4 次握手 = 最后一次 → WLAST=1
+```
+
+**为什么需要 WLAST？** 接收方（Slave 收 W）可能不知道或不想数拍数——WLAST 直接告诉它"结束了"。
+
+### 7.4 B 响应依赖
 
 AXI4 Slave 必须等以下条件都发生后才断言对应 `BVALID`：
 
@@ -420,7 +568,7 @@ AXI4 Slave 必须等以下条件都发生后才断言对应 `BVALID`：
 
 `BVALID` 出现不需要等待 `BREADY`。Slave 先给出响应，Master 决定何时接收。
 
-### 7.4 写数据顺序
+### 7.5 写数据顺序
 
 AXI4 没有 WID，Master 必须按照 AW 地址事务的顺序发送完整 W burst。
 
@@ -431,9 +579,9 @@ W burst A 的全部 beats
 W burst B 的全部 beats
 ```
 
-不能把 A、B 的 W beats 交织。
+不能把 A、B 的 W beats 交织（写交织 AXI4 不支持，AXI3 支持）。
 
-### 7.5 写响应可以乱序吗
+### 7.6 写响应可以乱序吗
 
 不同 ID 的写响应可以乱序返回，只要 Slave/interconnect 支持。
 
@@ -442,6 +590,35 @@ W burst B 的全部 beats
 ---
 
 ## 8. 读事务
+
+> **完整读事务流程（四步走）：① AR 握手（1 拍）→ ② Slave 处理等待（可能几拍）→ ③ R 握手 ×N（数据拍，RLAST 标记最后）→ ④ 完成。**
+
+一次多拍读 burst 的完整示例：
+
+```mermaid
+sequenceDiagram
+    autonumber
+    participant M as Master
+    participant S as Slave
+    M->>S: AR(ID=2, ADDR=0x1000, LEN=3, SIZE=2)
+    Note over S: Slave 处理中（可能等几拍）
+    S-->>M: R(data0, RLAST=0)
+    S-->>M: R(data1, RLAST=0)
+    S-->>M: R(data2, RLAST=0)
+    S-->>M: R(data3, RLAST=1) ← 最后一拍，完成
+    Note over M,S: ① AR 握手 → ② 等待 → ③ R×N 数据 → ④ 完成
+```
+
+```text
+AR(ID=2, ADDR=0x1000, LEN=3, SIZE=2)   ← ① 地址握手，请求 4 拍数据
+...（Slave 处理中，可能等几拍）          ← ② 等待
+R(ID=2, data0, RLAST=0)                 ← ③ 第 1 拍数据
+R(ID=2, data1, RLAST=0)                 ← ③ 第 2 拍数据
+R(ID=2, data2, RLAST=0)                 ← ③ 第 3 拍数据
+R(ID=2, data3, RLAST=1)                 ← ③ 第 4 拍（最后一拍）→ ④ 完成
+```
+
+**关键**：R 通道每个数据拍都带 **RID**（对应该请求）、**RRESP**（该拍状态）、**RLAST**（最后一拍标记）——即使拍被乱序/交织打乱，Master 也能靠 RID + RLAST 重新拼装。
 
 ### 8.1 AR 请求
 
@@ -463,7 +640,7 @@ RID + RDATA + RRESP + RLAST
 
 ### 8.3 `RRESP` 是逐 beat 的
 
-读 burst 的每一个 beat 都有 `RRESP`。不同 beat 可以出现不同响应，checker 不能只看最后一拍。
+读 burst 的每一个 beat 都有 `RRESP`。不同 beat 可以出现不同响应，不能只看最后一拍。
 
 ### 8.4 `RLAST`
 
@@ -473,6 +650,8 @@ RID + RDATA + RRESP + RLAST
 前 N-1 个已握手 R beat：RLAST=0
 第 N 个已握手 R beat：RLAST=1
 ```
+
+与写方向同理：**RLAST=1 必须出现在实际握手成功（RVALID && RREADY）的最后一拍**，Master 反压时（RREADY=0）RLAST 跟着往后挪。RLAST 与 WLAST 的作用相同——告诉接收方"burst 结束，准备收尾"。
 
 ### 8.5 读数据交织与乱序
 
@@ -501,7 +680,7 @@ R(ID=2, beat1, last)
 ### 9.1 `SLVERR` 与 `DECERR`
 
 ```text
-DECERR：不知道该把请求送到哪里
+DECERR：不知道该把请求送到哪里（地址映射空洞）
 SLVERR：送到了某个 Slave，但它拒绝或执行失败
 ```
 
@@ -512,6 +691,10 @@ SLVERR：送到了某个 Slave，但它拒绝或执行失败
 读：每个 data beat 都有一个 RRESP
 ```
 
+**为什么？** 读数据是逐拍从 Slave 流出，每拍可独立报状态；写是整批送到，Slave 收完统一给结果。
+
+**错误也必须保持协议完整**：即使某拍 SLVERR，剩余拍仍要传完、WLAST/RLAST 仍要对齐，不能中途断。
+
 ---
 
 ## 10. ID、Outstanding 与乱序
@@ -520,9 +703,22 @@ SLVERR：送到了某个 Slave，但它拒绝或执行失败
 
 ### 10.1 Outstanding
 
-地址请求已经握手、最终响应却还没回来，这笔事务就叫 outstanding。白话说，就是“已经下单，但还没有收完货”。
+地址请求已经握手、最终响应却还没回来，这笔事务就叫 outstanding。白话说，就是"已经下单，但还没有收完货"。
 
 例如：
+
+```mermaid
+sequenceDiagram
+    autonumber
+    participant M as Master
+    participant S as Slave
+    M->>S: AR(ID=0) 握手成功
+    Note over M: 请求0 outstanding（未收完货）
+    M->>S: AR(ID=1) 不等请求0，继续发
+    Note over M: 此时 2 笔 outstanding 读事务
+    S-->>M: R(ID=0, 最后一拍) → 请求0 完成
+    S-->>M: R(ID=1, 最后一拍) → 请求1 完成
+```
 
 ```text
 AR(ID=0) 已握手，还没收到最后 R beat
@@ -531,15 +727,20 @@ Master 又发送 AR(ID=1)
 
 此时有两笔 outstanding read transactions。
 
+**outstanding 深度** = 系统里最多能同时挂多少笔未完成事务 = `min(Master 支持数, Slave 支持数)`——由硬件缓冲槽位决定，不是由 ID 数量决定（ID 决定"能不能区分"，缓冲决定"能挂几笔"）。
+
 ### 10.2 为什么需要 ID
 
 如果返回顺序与请求不同，Master 需要知道每个响应属于哪笔请求。
 
-ID 就像事务的编号。不同编号可以并行处理和乱序返回；相同编号则提供必要的顺序约束。
+ID 就像事务的编号（订单号）。不同编号可以并行处理和乱序返回；相同编号则提供必要的顺序约束。
+
 ```text
 ARID -> RID
 AWID -> BID
 ```
+
+**同 ID 可以发多个事务，但必须按"先发先回"配对**——因为 ID 相同就无法区分，顺序是唯一的配对机制；不同 ID 靠编号区分，可以乱序。
 
 ### 10.3 基本顺序保证
 
@@ -569,11 +770,58 @@ ID 表示逻辑事务流，不用于地址译码。相同 ID 可以访问不同�
 
 返回时用附加位路由到正确 Master，再移除附加位。
 
+### 10.6 乱序与交织的区别
+
+**乱序（Out-of-Order）= 事务级重排**：整笔事务作为整体，谁先完成谁先回，每笔内部拍连续。
+
+```mermaid
+sequenceDiagram
+    autonumber
+    participant M as Master
+    participant S as Slave
+    M->>S: AR(ID=A) 事务A
+    M->>S: AR(ID=B) 事务B
+    Note over S: 乱序：整笔换顺序，笔内连续
+    S-->>M: R(B, beat0) → R(B, beat1)
+    S-->>M: R(A, beat0) → R(A, beat1)
+```
+
+```text
+请求: 事务A(2拍)  事务B(2拍)
+乱序: R(B0) R(B1) R(A0) R(A1)   ← 整笔换顺序，笔内连续
+```
+
+**交织（Interleaving）= 拍级穿插**：不同 ID 的数据拍互相穿插，每笔内部拍不连续。
+
+```mermaid
+sequenceDiagram
+    autonumber
+    participant M as Master
+    participant S as Slave
+    M->>S: AR(ID=A) 事务A
+    M->>S: AR(ID=B) 事务B
+    Note over S: 交织：拍级穿插，笔内不连续
+    S-->>M: R(A, beat0) → R(B, beat0)
+    S-->>M: R(A, beat1) → R(B, beat1)
+```
+
+```text
+交织: R(A0) R(B0) R(A1) R(B1)   ← 拍级穿插
+```
+
+| | 乱序 | 交织 |
+|---|---|---|
+| 重排单位 | 整笔事务 | 单个拍 |
+| 笔内拍连续吗 | 连续 | 不连续 |
+| 实现依据 | ID | 每拍带 RID + RLAST 拼装 |
+
+**交织深度**：1 = 先收完一笔的拍才能收另一笔（= 不交织）；>1 = 可同时交替接收多笔。**AXI4 读支持交织、写不支持**（写无 WID 无法区分，AXI3 写支持）。
+
 ---
 
 ## 11. Ordering
 
-### 11.1 “返回顺序”不等于“内存可见顺序”
+### 11.1 "返回顺序"不等于"内存可见顺序"
 
 收到 response，只说明接口协议已经走到规定的完成点；它不一定表示系统中所有处理器或设备已经看到这次写入。
 
@@ -589,9 +837,10 @@ AXI ordering model 还涉及：
 1. 同 ID 响应按请求顺序返回。
 2. 不同 ID 可能乱序。
 3. 读写之间没有天然顺序保证。
-4. 需要强顺序时，不要仅靠“我先发了”。
+4. 需要强顺序时，不要仅靠"我先发了"。
 
-因此，“先发请求”不等于“所有地方都先看到结果”。需要强顺序时，要等待响应或使用系统规定的 barrier/同步机制。
+因此，"先发请求"不等于"所有地方都先看到结果"。需要强顺序时，要等待响应或使用系统规定的 barrier/同步机制。
+
 ### 11.2 Peripheral region 为什么更敏感
 
 外设寄存器访问可能有副作用，例如：
@@ -622,18 +871,11 @@ Exclusive access 用于实现 read-modify-write，而不是长时间锁住总线
 - exclusive write 成功更新返回 `EXOKAY`。
 - exclusive write 失败、不更新目标，返回 `OKAY`。
 
-Master 看到 `OKAY` 不能把它当协议错误，而应理解为“条件写失败，需要重试算法”。
+Master 看到 `OKAY` 不能把它当协议错误，而应理解为"条件写失败，需要重试算法"。
 
 ### 12.1 常见限制
 
 Exclusive read/write 对必须保持关键属性匹配，例如 ID、地址、长度、大小、burst 类型等。具体实现还受 exclusive monitor 能力限制。
-
-验证时应覆盖：
-
-- 无冲突，exclusive write 成功。
-- 中间有其他 Master 写同位置，exclusive write 失败。
-- 不匹配属性导致失败。
-- 多 ID 和多 monitor 情况。
 
 ---
 
@@ -651,7 +893,7 @@ Exclusive read/write 对必须保持关键属性匹配，例如 ID、地址、�
 
 `AxCACHE` 描述事务可否 buffer、可否修改以及 cache 分配提示。它会影响 interconnect 能否拆分、合并、提前响应或经过缓存。
 
-初学者不要把它简单理解成“是否 cacheable”一个布尔值。实际使用应严格对照项目 memory map 和 Arm 编码表。
+初学者不要把它简单理解成"是否 cacheable"一个布尔值。实际使用应严格对照项目 memory map 和 Arm 编码表。
 
 ### 13.3 `AxQOS`
 
@@ -667,59 +909,9 @@ Exclusive read/write 对必须保持关键属性匹配，例如 ID、地址、�
 
 ---
 
-## 14. 验证视角
+## 14. 总结
 
-两条核心断言：
-
-```systemverilog
-// [1] sticky VALID：VALID=1 且未被接收时，下一拍必须保持（五条通道通用）
-property p_valid_sticky(valid, ready);
-    @(posedge ACLK) disable iff (!ARESETn)
-    valid && !ready |=> valid;
-endproperty
-a_awvalid_sticky: assert property (p_valid_sticky(AWVALID, AWREADY));
-a_wvalid_sticky : assert property (p_valid_sticky(WVALID,  WREADY));
-a_bvalid_sticky : assert property (p_valid_sticky(BVALID,  BREADY));
-a_arvalid_sticky: assert property (p_valid_sticky(ARVALID, ARREADY));
-a_rvalid_sticky : assert property (p_valid_sticky(RVALID,  RREADY));
-
-// [2] 反压时 payload 稳定（以 AW 为例；W/R 类似，W 要含 WLAST）
-property p_aw_payload_stable;
-    @(posedge ACLK) disable iff (!ARESETn)
-    AWVALID && !AWREADY
-    |=> AWVALID && $stable({AWID, AWADDR, AWLEN, AWSIZE, AWBURST});
-endproperty
-a_aw_payload_stable: assert property (p_aw_payload_stable);
-```
-
-WLAST/RLAST 检查更适合带计数状态的 checker：AW fire 时记录 expected_beats=AWLEN+1，W 握手时核对最后一拍。
-
-写通路：AW fire 入队 → W fire 归到最早未收完数据的 AW 事务 → WLAST 完成数据部分 → B fire 按 BID 找同 ID 最早待响应事务并发布。（AXI4 W 没有 ID，数据按 AW 顺序归属。）
-
-读通路：AR fire 按 ARID 入队 → R fire 找对应最早请求 → RLAST 完成发布。数据可能跨 RID 交织，不能只有一个全局 current_read。
-
-协议错误：无 AW 收到 W beat、W 数与 AWLEN 不符、WLAST 过早/过晚、无待响应事务却收到 BID、无 ARID 却收到 RID、RLAST 与 ARLEN 不符、同 ID 响应乱序。
-
-| 错误理解/实现 | 正确理解 |
-|---|---|
-| `AxLEN` 就是 beat 数 | beat 数是 `AxLEN+1` |
-| 数据总线宽度就是每拍访问宽度 | 每拍宽度由 `AxSIZE` 决定 |
-| W 与 AW 必须同拍 | 两通道独立，可任意先后 |
-| AXI4 W 有 ID | AXI4 没有 WID，W burst 按 AW 顺序 |
-| 每拍 WVALID 都计数 | 只在 `WVALID && WREADY` 计数 |
-| 只在最后看 RRESP | 每个 R beat 都有 RRESP |
-| 不同 ID 也必须按发出顺序返回 | 不同 ID 可以乱序 |
-| 同一 ID 可以乱序返回 | 同一 ID、同一目标必须保序 |
-| Response 出错就可以少发 beat | 错误也必须保持协议完整和正确 LAST |
-| Exclusive write 返回 OKAY 是普通成功 | 通常表示 exclusive 条件失败、未更新 |
-| Burst 可以跨 4KB | AXI burst 不允许跨 4KB |
-| VALID 可以等 READY | Source 不允许形成这种依赖 |
-
----
-
-## 15. 总结
-
-### 15.1 学习重点排序
+### 14.1 学习重点排序
 
 | 优先级 | 必须掌握 |
 |---|---|
@@ -728,23 +920,30 @@ WLAST/RLAST 检查更适合带计数状态的 checker：AW fire 时记录 expect
 | 🔴 高 | WLAST/RLAST 与实际握手 beat 计数 |
 | 🔴 高 | ID、outstanding、同 ID 保序 |
 | 🟡 中 | 非对齐、WSTRB、4KB 边界 |
-| 🟡 中 | Monitor 的 per-ID context |
+| 🟡 中 | 乱序与交织的区别 |
 | 🟡 中 | Response 与错误完整性 |
 | 🟢 进阶 | Exclusive、cache 属性、系统可见顺序 |
 
-### 15.2 易错点
+### 14.2 易错点
 
 | 易错理解 | 正确理解 |
 |---|---|
 | `AxLEN` 就是 beat 数 | 实际 beat 数是 `AxLEN+1` |
 | 数据总线宽度就是每拍大小 | 每拍最大字节数由 `2^AxSIZE` 决定 |
-| W 与 AW 必须同时出现 | 两个通道独立，W 甚至可以先握手 |
+| W 与 AW 必须同拍 | 两通道独立，可任意先后 |
 | AXI4 的 W 通道带 ID | AXI4 没有 WID，写数据按 AW 顺序归属 |
-| 不同 ID 也必须按请求顺序返回 | 不同 ID 可以乱序，同 ID 受顺序规则约束 |
-| 报错后可以少发几个 beat | 错误事务仍要保持正确 beat 数和 LAST |
-| burst 可以跨 4KB | AXI burst 不允许跨越 4KB 边界 |
+| 每拍 WVALID 都计数 | 只在 `WVALID && WREADY` 计数 |
+| 只在最后看 RRESP | 每个 R beat 都有 RRESP |
+| 不同 ID 也必须按发出顺序返回 | 不同 ID 可以乱序 |
+| 同一 ID 可以乱序返回 | 同一 ID、同一目标必须保序 |
+| Response 出错就可以少发 beat | 错误也必须保持协议完整和正确 LAST |
+| Exclusive write 返回 OKAY 是普通成功 | 通常表示 exclusive 条件失败、未更新 |
+| Burst 可以跨 4KB | AXI burst 不允许跨 4KB |
+| VALID 可以等 READY | Source 不允许形成这种依赖 |
+| 非对齐首拍传满 SIZE 字节 | 首拍只到下一个对齐边界，有效字节 = SIZE - (addr mod SIZE) |
+| lane 起点用地址 mod SIZE 算 | lane 起点用地址 mod 总线字节数（物理车道） |
 
-### 15.3 最重要的 12 条规则
+### 14.3 最重要的 12 条规则
 
 1. AXI4 仍使用五个独立 VALID/READY 通道。
 2. Transfer 只发生在 `VALID && READY` 的上升沿。
@@ -757,7 +956,7 @@ WLAST/RLAST 检查更适合带计数状态的 checker：AW fire 时记录 expect
 9. AXI4 没有 WID，写数据按 AW 事务顺序发送。
 10. 同 ID 响应保序，不同 ID 可以乱序。
 11. WLAST/RLAST 必须与实际握手的最后 beat 对齐。
-12. Scoreboard 必须按 ID 建模，不能用一个全局 FIFO 假设全部有序。
+12. 读响应逐拍 RRESP，写响应整笔一个 BRESP。
 
 ---
 

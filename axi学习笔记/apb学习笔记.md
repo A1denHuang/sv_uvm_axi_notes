@@ -2,7 +2,7 @@
 
 > 适合读者：已经接触过 Verilog/SystemVerilog，准备学习片上总线和 UVM，但还没有总线协议基础。
 >
-> 学习目标：看懂 APB 波形；理解 Requester/Completer 的基本实现；能搭建简单 interface、monitor 和协议检查。
+> 学习目标：看懂 APB 波形；理解 Requester/Completer 的基本实现；理解 SETUP/ACCESS 两阶段与完成条件。
 
 ---
 
@@ -185,7 +185,7 @@ PWDATA      D1         D1         D1         D1         next
 - `PPROT`
 - 对应用户信号
 
-这条规则是 APB monitor 和 SVA 的重点。
+这条规则是 APB 协议的核心检查点。
 
 ### 4.3 零等待读
 
@@ -201,7 +201,7 @@ PWDATA      D1         D1         D1         D1         next
 
 Requester 只在最终完成沿采样 `PRDATA`，所以等待期间的数据不应被提前使用。
 
-工程上常让 Completer 在等待时也保持 `PRDATA` 稳定，便于调试；但 monitor 仍然只能在完成后发布 transaction。
+工程上常让 Completer 在等待时也保持 `PRDATA` 稳定，便于调试。
 
 ### 4.5 读传输时的 `PSTRB`
 
@@ -370,64 +370,21 @@ interface apb_if #(
 endinterface
 ```
 
-这里只保留协议相关信号。实际 UVM 环境可以再加入 clocking block 和 modport，以避免 driver 与 DUT 的采样竞争。
+这里列出 APB 协议的全部核心信号。
 
 ---
 
-## 11. 验证视角
+## 11. 总结
 
-### 11.1 Requester 与 Completer
-
-Requester 的驱动流程与协议状态机一致：
-
-1. SETUP 拍给出地址、方向和数据。
-2. 下一拍拉高 `PENABLE` 进入 ACCESS。
-3. 等待 `PREADY=1`。
-4. 在完成沿采样响应，然后进入 IDLE 或下一笔 SETUP。
-读任务类似：`PWRITE=0`、`PSTRB` 全 0，完成沿采样 `PRDATA`/`PSLVERR`。
-driver 必须等真正的完成条件（`PSEL && PENABLE && PREADY`），不能假设外设永远零等待。
-
-零等待外设可以把 `PREADY` 常接 1；地址译码用组合逻辑，读数据 `PRDATA` 只需在完成沿有效。
-写副作用（寄存器更新）必须绑定到完成沿 `PSEL && PENABLE && PREADY && PWRITE`——否则 `PREADY=0` 等待期间会重复写入（例如 FIFO 被 push 多次）。
-
-### 11.2 核心断言
-
-核心断言包括：SETUP 后下一拍必须进入 ACCESS；等待期间请求字段保持稳定；`PENABLE` 有效时必须有 `PSEL`；读访问 `PSTRB` 为 0；`PSLVERR` 只在完成周期有效。
-
-### 11.3 Monitor
-
-SETUP 拍采样请求字段（addr/write/data/strb），完成沿（`PSEL && PENABLE && PREADY`）采样返回字段（rdata/slverr），只发布一次完整 transaction。
-
-易错点：看到 `PSEL` 就发（响应字段还没出现）；每个等待周期都发；在 `PREADY=1` 但 `PENABLE=0` 时误判完成；连续传输中死等 `PSEL` 拉低（可能不拉低）。
-
-### 11.4 常见错误
-
-| 错误理解/实现 | 正确理解 |
-|---|---|
-| `PREADY=1` 就表示完成 | 必须同时有 `PSEL && PENABLE && PREADY` |
-| `PENABLE` 可以一直为 1 | 每笔传输都必须先有 `PENABLE=0` 的 SETUP |
-| 等待时可以先改地址 | `PREADY=0` 的 ACCESS 期间请求信息必须稳定 |
-| 写逻辑见到 ACCESS 就执行 | 副作用应在完成沿执行，避免等待期间重复 |
-| `PSTRB` 是位掩码 | 每位控制一个字节 |
-| 读时 `PSTRB` 无所谓 | 读传输必须全 0 |
-| `PSLVERR` 表示操作已回滚 | 规范不保证没有副作用 |
-| 连续传输必须拉低 `PSEL` | 同一外设可保持 `PSEL=1`，但要插入 SETUP |
-| Monitor 等 `PSEL` 下降才结束 | 连续传输可能不下降，应看完成条件 |
-| APB 适合搬运大块数据 | APB 不流水，适合控制寄存器 |
-
----
-
-## 12. 总结
-
-### 12.1 学习重点排序
+### 11.1 学习重点排序
 
 | 优先级 | 学习内容 |
 |---|---|
 | 🔴 高 | `SETUP -> ACCESS`、完成条件、等待期间保持稳定 |
 | 🟡 中 | 连续传输、`PSTRB`、`PSLVERR`、地址译码 |
-| 🟢 进阶 | `PPROT`、APB5 扩展、interface 和验证检查 |
+| 🟢 进阶 | `PPROT`、APB5 扩展、interface 和实现优化 |
 
-### 12.2 易错点
+### 11.2 易错点
 
 | 易错理解 | 正确理解 |
 |---|---|
@@ -437,7 +394,7 @@ SETUP 拍采样请求字段（addr/write/data/strb），完成沿（`PSEL && PEN
 | 写副作用在进入 ACCESS 时发生 | 应绑定到真正的完成沿 |
 | 连续访问必须拉低 `PSEL` | 同一外设可保持 `PSEL=1`，但 `PENABLE` 必须回到 0 |
 
-### 12.3 最重要的 10 条规则
+### 11.3 最重要的 10 条规则
 
 1. APB 是同步、非流水协议，每笔至少两拍。
 2. SETUP 时 `PSEL=1, PENABLE=0`。

@@ -2,7 +2,7 @@
 
 > 适合读者：已经理解 VALID/READY，希望学习视频流、网络包、DSP 数据链路或 FPGA 中的流接口。
 >
-> 学习目标：理解 AXI4-Stream 与 memory-mapped AXI 的区别；正确处理反压（backpressure）、packet 边界和伴随信息（sideband）；掌握基本 monitor 与协议断言。
+> 学习目标：理解 AXI4-Stream 与 memory-mapped AXI 的区别；正确处理反压（backpressure）、packet 边界和伴随信息（sideband）；掌握握手、TKEEP/TSTRB 与 TLAST 语义。
 
 ---
 
@@ -363,7 +363,7 @@ stream_key = {TID, TDEST}
 (ID=1, DEST=3, packet B beat1, TLAST)
 ```
 
-因此支持多 stream 的 monitor 不能只有一个全局 current_packet，必须按 `{TID,TDEST}` 保存上下文。
+因此多 stream 交织时，不能用一个全局状态描述当前 packet，必须按 `{TID,TDEST}` 分别保存每个 stream 的 packet 上下文。
 
 ### 6.5 Ordering
 
@@ -479,27 +479,6 @@ interface axi_stream_if #(
     // TVALID 由 Transmitter 驱动，TREADY 由 Receiver 驱动。
     logic                    TVALID;
     logic                    TREADY;
-
-    clocking tx_cb @(posedge ACLK);
-        // Transmitter 驱动 payload/TVALID，只采样 Receiver 的 TREADY。
-        default input #1step output #0;
-        output TDATA, TKEEP, TSTRB, TLAST, TID, TDEST, TUSER, TVALID;
-        input  TREADY;
-    endclocking
-
-    clocking rx_cb @(posedge ACLK);
-        // Receiver 采样 payload/TVALID，只驱动自己的反压信号 TREADY。
-        default input #1step output #0;
-        input  TDATA, TKEEP, TSTRB, TLAST, TID, TDEST, TUSER, TVALID;
-        output TREADY;
-    endclocking
-
-    clocking monitor_cb @(posedge ACLK);
-        // 被动 Monitor 只观察双方信号，并在 TVALID && TREADY 时组装 beat。
-        default input #1step;
-        input TDATA, TKEEP, TSTRB, TLAST, TID, TDEST, TUSER;
-        input TVALID, TREADY;
-    endclocking
 endinterface
 ```
 
@@ -507,128 +486,17 @@ endinterface
 
 ---
 
-## 11. 验证视角
+## 11. 总结
 
-### 11.1 只在 fire 时采样
-
-```systemverilog
-// Monitor 不能只看 TVALID；阻塞期间同一个 beat 会保持多个周期。
-if (vif.monitor_cb.TVALID && vif.monitor_cb.TREADY) begin
-    // 只在真实 fire 事件中采一次 TDATA 和全部 sideband。
-end
-```
-
-### 11.2 单 stream
-
-```text
-每次 fire：
-    根据 TKEEP/TSTRB 追加 byte/position 信息
-    保存 TUSER
-    若 TLAST=1：发布 packet，清空当前 packet
-```
-
-### 11.3 多 stream
-
-```systemverilog
-typedef struct packed {
-    // 把 TID 与 TDEST 组合成关联数组 key，分别累计多个交织 stream。
-    bit [ID_WIDTH-1:0]   id;
-    bit [DEST_WIDTH-1:0] dest;
-} stream_key_t;
-```
-
-概念容器：
-
-```text
-packet_by_stream[{TID,TDEST}]
-```
-
-每个 stream 独立累计，遇到该 stream 的 `TLAST` 才结束对应 packet。
-
-### 11.4 不能无条件丢弃 null-only beat
-
-如果 `TKEEP='0` 且 `TLAST=1`，它仍可能表示空 packet 或 packet end，monitor 必须保留边界语义。
-
-### 11.5 TVALID sticky
-
-```systemverilog
-property p_tvalid_sticky;
-    @(posedge ACLK) disable iff (!ARESETn)
-    // 当前 beat 未被 Receiver 接收时，下一拍 TVALID 不能撤销。
-    TVALID && !TREADY |=> TVALID;
-endproperty
-a_tvalid_sticky: assert property (p_tvalid_sticky);
-```
-
-### 11.6 Payload 稳定
-
-```systemverilog
-property p_payload_stable;
-    @(posedge ACLK) disable iff (!ARESETn)
-    // backpressure 期间，数据、packet 边界和所有 stream 元数据都必须保持。
-    TVALID && !TREADY
-    |=> TVALID && $stable({TDATA, TKEEP, TSTRB, TLAST,
-                           TID, TDEST, TUSER});
-endproperty
-a_payload_stable: assert property (p_payload_stable);
-```
-
-### 11.7 复位时 TVALID 为低
-
-```systemverilog
-property p_tvalid_low_in_reset;
-    @(posedge ACLK)
-    // 复位有效时同拍检查 TVALID=0。
-    !ARESETn |-> !TVALID;
-endproperty
-```
-
-### 11.8 非法 keep/strb 组合
-
-```systemverilog
-property p_strb_implies_keep;
-    @(posedge ACLK) disable iff (!ARESETn)
-    // 任一 TSTRB=1 的 lane 必须同时 TKEEP=1；禁止 keep=0/strb=1 组合。
-    TVALID |-> ((TSTRB & ~TKEEP) == '0);
-endproperty
-```
-
-即任何 `TSTRB=1` 的 byte lane 必须同时 `TKEEP=1`。
-
-### 11.9 packet 内 ID/DEST 稳定
-
-checker 需要记录每个 packet 是否仍在进行。
-
-如果接口允许多个 stream 交织，就不能用一个全局状态要求 `TID` 始终不变；应按 `{TID,TDEST}` 分别保存每个 stream 的 packet 状态。
-
-| 错误理解/实现 | 正确理解 |
-|---|---|
-| `TVALID=1` 就传了一拍 | 必须同时 `TREADY=1` |
-| 下游不 ready 时可以换 TDATA | 阻塞期间全部 payload 必须稳定 |
-| Transmitter 等 TREADY 才拉 TVALID | 可能与 Receiver 互等而死锁 |
-| 相邻 beat 之间 TVALID 必须拉低 | 满带宽时可连续保持高 |
-| TLAST 高就已经结束 packet | 必须 TLAST 所在 beat 真正握手 |
-| TKEEP 是写使能 | 它表示 byte 是否保留在 stream 中 |
-| TKEEP=0 的 beat 一定可丢 | TLAST=1 时仍有 packet 边界语义 |
-| TSTRB=0 表示 null byte | 当 TKEEP=1 时表示 position byte |
-| TID 等同 AXI transaction ID | 它表示 stream identifier |
-| 多 stream monitor 只需一个 packet buffer | 应按 `{TID,TDEST}` 保存上下文 |
-| Width converter 可以逐 beat 比较 | 应规范化为 packet/byte 级比较 |
-| AXIS 自带错误响应 | 协议没有通用 response，错误通常放 TUSER 或旁路 |
-
----
-
-## 12. 总结
-
-### 12.1 学习重点排序
+### 11.1 学习重点排序
 
 | 优先级 | 学习内容 |
 |---|---|
 | 🔴 高 | `TVALID/TREADY`、阻塞稳定性、`TKEEP/TSTRB`、`TLAST` |
 | 🟡 中 | packet、`TID/TDEST`、多 stream 顺序、宽度转换 |
-| 🟢 进阶 | `TUSER`、interface、monitor 和协议断言 |
+| 🟢 进阶 | `TUSER`、interface 和实现优化 |
 
-### 12.2 易错点
+### 11.2 易错点
 
 | 易错理解 | 正确理解 |
 |---|---|
@@ -639,7 +507,7 @@ checker 需要记录每个 packet 是否仍在进行。
 | `TID` 等于 AXI transaction ID | `TID` 表示 stream 身份 |
 | 多 stream 只需一个 packet buffer | 应按 `{TID,TDEST}` 分别保存上下文 |
 
-### 12.3 最重要的 10 条规则
+### 11.3 最重要的 10 条规则
 
 1. AXI4-Stream 无地址，一套接口只传一个方向。
 2. Transfer 只在 `TVALID && TREADY` 上升沿发生。
@@ -650,7 +518,7 @@ checker 需要记录每个 packet 是否仍在进行。
 7. `TLAST` 只有在所在 beat 握手后才真正结束 packet。
 8. `{TID,TDEST}` 常作为 stream key。
 9. 不同 stream 可交织，同一 stream 必须保序。
-10. Verification 应先采 beat，再按 stream 重建 packet 比较。
+10. 无地址协议，接口只定义单向数据流，双向通信用两套接口。
 
 ---
 

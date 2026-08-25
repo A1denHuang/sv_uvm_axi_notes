@@ -437,58 +437,9 @@ Issue C 定义的 check 信号可保护地址、控制、数据和响应接口�
 
 ---
 
-## 9. 验证视角：AHB 环境怎么搭
+## 9. 本章总结
 
-### 9.1 interface 要点
-
-```systemverilog
-interface ahb_if(input logic hclk, input logic hrstn);
-    logic [31:0] haddr;
-    logic [1:0]  htrans;
-    logic        hwrite;
-    logic [2:0]  hsize;
-    logic [2:0]  hburst;
-    logic [31:0] hwdata;
-    logic [31:0] hrdata;
-    logic [3:0]  hwstrb;
-    logic [6:0]  hprot;
-    logic        hnonsec;
-    logic        hready;      // [1] 互联路由后的全局 HREADY
-    logic        hreadyout;   // 当前 Subordinate 的完成输出
-    logic        hresp;
-    logic        hsel;
-endinterface
-```
-
-### 9.2 验证要点（monitor/scoreboard/断言）
-
-| 检查点 | 验证内容 |
-|---|---|
-| 传输类型合法性 | NONSEQ 后只能跟 SEQ/BUSY/IDLE/NONSEQ；BUSY 不能在固定长度 burst 的最后一拍 |
-| 地址递增 | SEQ 地址 = 上一地址 + HSIZE；WRAP 在边界回卷 |
-| 流水线正确性 | 数据阶段与下一地址阶段重叠采样 |
-| HREADY 路由 | 选择当前数据阶段目标的 HREADYOUT，形成全局 HREADY |
-| ERROR 两拍 | HRESP=ERROR 必须持续两拍且第二拍 HREADYOUT HIGH |
-| burst 完整性 | 固定长度 burst 必须以 SEQ 结束，不能 BUSY 结尾 |
-| 1KB 边界 | INCR burst 不能跨 1KB 边界 |
-| reset | 复位期间 HTRANS=IDLE、HREADYOUT=HIGH |
-| 写 strobe | HWSTRB 与数据同相位，等待时稳定 |
-| Exclusive | 失败的 Exclusive Write 不能更新内存 |
-
-### 9.3 常见错误场景（测试要覆盖）
-
-- 等待有效 `NONSEQ/SEQ` 时，Manager 非法改变地址或控制；同时覆盖 `IDLE/BUSY` 的合法变化例外。
-- WRAP burst 地址计算错误（绕回点算错）。
-- ERROR 响应只给了一拍。
-- BUSY 用在固定长度 burst 最后一拍。
-- 窄传输时字节通道（byte lane）驱动错误。
-- 多 Subordinate 时，返回 mux 使用了当前地址阶段而不是数据阶段的选择信号。
-
----
-
-## 10. 本章总结
-
-### 10.1 学习重点排序
+### 9.1 学习重点排序
 
 | 优先级 | 内容 |
 |---|---|
@@ -501,7 +452,7 @@ endinterface
 | 🟢 进阶 | 锁定传输、写 strobe、端序、AHB5 独占访问 |
 | 🟢 进阶 | reset、信号有效性、用户信号和奇偶校验 |
 
-### 10.2 易错点
+### 9.2 易错点
 
 | 易错点 | 正确理解 |
 |---|---|

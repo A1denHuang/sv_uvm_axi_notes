@@ -1,8 +1,8 @@
 # AMBA AXI4-Lite 学习笔记：五通道握手与寄存器接口
 
-> 适合读者：已经学过 APB，准备接触 AXI；希望先用较小的协议子集理解五通道、VALID/READY 和独立握手。
+> 适合读者：零基础或已学过 APB，准备接触 AXI；先用协议子集理解五通道、VALID/READY 和独立握手。
 >
-> 学习目标：读懂 AXI4-Lite 波形；理解 AW/W 独立握手和响应依赖；掌握基本 monitor 与协议断言。
+> 学习目标：读懂 AXI4-Lite 波形；理解 AW/W 独立握手和响应依赖；掌握五通道与握手规则。
 
 ---
 
@@ -28,6 +28,8 @@ AXI4-Lite 是 AXI4 的简化子集，主要用于控制寄存器接口。
 ---
 
 ## 1. AXI4-Lite 是什么
+
+**一句话定位**：AXI4-Lite 是 CPU 和外设之间的一条"快递通道"——发一个请求、传一个数据、收一个回执，一次办完一件事。
 
 AXI4-Lite 可以理解为：
 
@@ -61,7 +63,7 @@ AXI4-Lite 可以理解为：
 | 写地址和写数据 | 同一传输中同时稳定 | 两个独立通道，可任意先后 |
 | 响应 | `PSLVERR` | `BRESP/RRESP` |
 
-AXI4-Lite 语法看似只是信号更多，真正难点是“通道彼此独立”。
+AXI4-Lite 语法看似只是信号更多，真正难点是"通道彼此独立"。
 
 ---
 
@@ -84,18 +86,21 @@ flowchart LR
 | AR | Master -> Slave | 读地址和读保护属性 |
 | R | Slave -> Master | 读数据和读响应 |
 
+**记忆技巧**：A=地址、W=写、R=读、B=Backward（反向）。写流程三步走 AW→W→B，读流程两步走 AR→R。
+
 ### 2.1 为什么读没有单独响应通道
 
-读数据必须从 Slave 返回 Master，因此 `RRESP` 可以与 `RDATA` 一起放在 R 通道。
+**一句话**：数据从哪边回去，响应就跟数据走；反方向回不去就单独开通道。
 
-写数据方向是 Master 到 Slave，写结果要反方向返回，所以需要单独的 B 通道。
+- **读方向**：读数据本来就是 Slave → Master，`RRESP` 可以与 `RDATA` 一起放在 R 通道顺路带回，不需要额外通道。
+- **写方向**：写数据是 Master → Slave（去程），写结果要反方向返回，所以必须单独开一条 B 通道。
 
 ### 2.2 全局信号
 
 | 信号 | 作用 |
 |---|---|
 | `ACLK` | 所有输入在上升沿采样 |
-| `ARESETn` | 低有效复位 |
+| `ARESETn` | 低有效复位（平时为 1，拉 0 才复位） |
 
 ### 2.3 AW 写地址通道
 
@@ -167,24 +172,26 @@ AXI4-Lite 的核心限制：
 | `WLAST/RLAST` | 每笔都是最后一拍，等效为 1 |
 | ID signals | 不存在 |
 
-“Outstanding”指请求已经接收，但最终响应还没有返回。AXI4-Lite 可以同时存在多笔这样的事务，但没有 ID 可供区分，因此响应必须保持顺序。
+**Outstanding（未完成事务）**：请求已经接收，但最终响应还没有返回——白话说就是"已经下单，但还没有收完货"。AXI4-Lite 可以同时存在多笔这样的事务，但没有 ID 可供区分，因此响应必须保持顺序。
 
-最简单的 Slave 可以在上一笔完成前拉低 `READY`，把自己限制成一次只处理一笔。
+最简单的 Slave 可以在上一笔完成前拉低 `READY`，把自己限制成一次只处理一笔——这是工程选择，不是协议强制。
 
 ---
 
 ## 4. VALID/READY 握手
 
-每个通道都使用相同规则：
+**每个通道都使用相同规则**：
 
 ```systemverilog
 // 该表达式必须在 ACLK 上升沿采样；组合值为 1 才完成一次通道 transfer。
 transfer = VALID && READY;
 ```
 
+**核心规则（唯一规则）**：传输只发生在某个时钟上升沿 VALID 和 READY **同时为 1** 的那一拍。
+
 ### 4.1 Source 与 Destination
 
-在每个通道里，Source 是“提供内容的一方”，负责 `VALID`；Destination 是“接收内容的一方”，负责 `READY`。它们不一定分别等于 Master 和 Slave。
+在每个通道里，Source 是"提供内容的一方"，负责 `VALID`；Destination 是"接收内容的一方"，负责 `READY`。**它们不一定分别等于 Master 和 Slave。**
 
 | 通道 | Source：驱动 VALID | Destination：驱动 READY |
 |---|---|---|
@@ -194,18 +201,36 @@ transfer = VALID && READY;
 | AR | Master | Slave |
 | R | Slave | Master |
 
-“VALID 一定由 Master 驱动”是错误的。B、R 通道的 Source 是 Slave。
+**"VALID 一定由 Master 驱动"是错误的。** B、R 通道的 Source 是 Slave。
 
-可以把握手想成：Source 说“东西已经放好了”，Destination 说“我现在能接”。只有两句话在同一个上升沿同时成立，传输才发生。
+可以把握手想成打电话：Source 说"东西已经放好了"（VALID），Destination 说"我现在能接"（READY）。只有两句话在同一个上升沿同时成立，传输才发生。
+
 ### 4.2 三种合法时序
 
 ```text
-情况 A：VALID 先到，READY 后到
-情况 B：READY 先到，VALID 后到
-情况 C：VALID 与 READY 同拍到
+情况 A：VALID 先到，READY 后到（快递员先到门口，等你伸手）
+情况 B：READY 先到，VALID 后到（你提前等着，货一到立刻接走，零等待）
+情况 C：VALID 与 READY 同拍到（双方同时就绪，一拍完成）
 ```
 
-只要在某个上升沿两者同时为 `1`，该通道完成一次传输。
+只要在某个上升沿两者同时为 `1`，该通道完成一次传输。**"变 1 的那拍就是传成的那拍"，不需要额外再等一拍。**
+
+三种情况的波形示意：
+
+```mermaid
+sequenceDiagram
+    autonumber
+    participant Src as Source(VALID方)
+    participant Dst as Destination(READY方)
+    Note over Src,Dst: 情况A：VALID 先到，等 READY
+    Src->>Dst: VALID=1，数据稳定举着
+    Dst-->>Src: 下拍 READY=1 → 传成
+    Note over Src,Dst: 情况B：READY 先到，等 VALID
+    Dst->>Src: READY=1 提前拉高
+    Src-->>Dst: 下一拍 VALID=1 → 同拍传成（零等待）
+    Note over Src,Dst: 情况C：同拍到，一拍完成
+    Src->>Dst: VALID=1 与 READY=1 同拍
+```
 
 ### 4.3 Source 的铁律
 
@@ -221,6 +246,8 @@ Source 不允许等待 READY 后才拉高 VALID。
 2. 一旦 VALID 拉高，在握手完成前必须保持 VALID。
 3. 握手完成前 payload 必须稳定。
 
+**违反第 1 条会死锁**：双方互等，谁也等不到谁——这是面试必考场景。
+
 ### 4.4 Destination 可以等待 VALID
 
 Destination 可以：
@@ -231,7 +258,36 @@ Destination 可以：
 
 为了单拍接收，常建议 READY 在确实有容量时提前为高。
 
-### 4.5 接口组合路径限制
+**READY 能否持续保持高电平？可以。** 只要接收方有容量（单拍接收优化）；没容量时拉低 READY 反压。READY 与 VALID 不对称：READY 可以等 VALID，VALID 不能等 READY。
+
+### 4.5 反压（Backpressure）
+
+**反压 = 接收方暂时没有能力接收，通过拉低 READY 告诉发送方"先别发，等我缓过来"。**
+
+| 场景 | 说明 |
+|---|---|
+| FIFO/buffer 满了 | 收进来的数据还没来得及处理 |
+| 处理慢 | 比如慢速外设一拍只能处理一点点 |
+| 响应槽占满 | B/R 响应还没被 Master 接走 |
+
+被反压时，发送方必须：**VALID 保持 1（数据还举着）**、**payload 保持稳定（不能换数据）**——这就是"阻塞期间 payload 必须稳定"的实战场景。
+
+反压示意：
+
+```mermaid
+sequenceDiagram
+    autonumber
+    participant M as Master(WVALID方)
+    participant S as Slave(WREADY方)
+    M->>S: 拍1: WVALID=1, WREADY=1 → 收下
+    Note over S: 拍2~3: FIFO 满了 → 拉低 WREADY 反压
+    M->>S: 拍2: WVALID=1（保持），WREADY=0 → 等着
+    M->>S: 拍3: WVALID=1（保持），WREADY=0 → 继续等
+    Note over S: 拍4: FIFO 空出 → READY 重新拉高
+    M->>S: 拍4: WVALID=1, WREADY=1 → 传输完成
+```
+
+### 4.6 接口组合路径限制
 
 AXI 接口输入到输出之间不能存在组合路径。实际设计通常使用寄存器、FIFO 或 skid buffer 断开组合依赖。
 
@@ -279,7 +335,7 @@ if (AWVALID && AWREADY && WVALID && WREADY)
     do_write();
 ```
 
-这个实现只接受“AW 与 W 恰好同拍握手”。若 AW 先握手后撤销，W 隔几拍才来，写事务会永久丢失。
+这个实现只接受"AW 与 W 恰好同拍握手"。若 AW 先握手后撤销，W 隔几拍才来，写事务会永久丢失。
 
 ### 5.3 正确思路：分别保存
 
@@ -287,6 +343,21 @@ if (AWVALID && AWREADY && WVALID && WREADY)
 AW handshake -> 保存地址，置 aw_hold_valid
 W  handshake -> 保存数据/STRB，置 w_hold_valid
 两者都有效   -> 执行写操作，产生 B response
+```
+
+**理解**：AW 和 W 是两条不同的路，货物可能分开到。Slave 必须把先到的那份"存起来等"，不能假设它们同时到。
+
+写事务的通道关系：
+
+```mermaid
+sequenceDiagram
+    autonumber
+    participant M as Master
+    participant S as Slave
+    M->>S: AW 握手（写地址）
+    M->>S: W 握手（写数据+WSTRB）
+    Note over M,S: AW 与 W 可任意先后
+    S-->>M: B 握手（写响应）必须等两者都收到
 ```
 
 `BRESP` 编码：
@@ -334,9 +405,13 @@ Slave 拉高 `BVALID` 后，必须保持 `BRESP` 稳定，直到 `BVALID && BREA
 - `RRESP` 必须稳定。
 - 没有额外缓冲时，不应再接收会覆盖返回槽的新读请求。
 
+**为什么数据必须稳定？** 因为 Master 不知道你哪一拍会接（RREADY），它可能在任意一拍采样 RDATA——中途换数据，它采样到的就是不确定内容。
+
 ---
 
 ## 7. 写字节使能 WSTRB
+
+**WSTRB 是"字节开关"**：每 bit 对应 WDATA 的一个字节，为 1 才更新该字节，实现部分写。
 
 32 位接口中：
 
@@ -358,6 +433,10 @@ for (int i = 0; i < DATA_WIDTH/8; i++) begin
 end
 ```
 
+**语法解释**：`[i*8 +: 8]` = 从第 i*8 位开始取 8 位，即第 i 个字节（等价于展开写 [7:0]/[15:8]/[23:16]/[31:24]）。
+
+**示例**：`wdata = 0x1234_5678`，`wstrb = 4'b0011` → 只更新低 2 字节（0x78、0x56），高 2 字节保持原值。
+
 规范允许 Slave：
 
 - 完整支持 `WSTRB`。
@@ -376,11 +455,11 @@ end
 
 ## 8. AxPROT 访问属性
 
-`AWPROT` 和 `ARPROT` 的含义相同：
+`AWPROT` 和 `ARPROT` 的含义相同——3 位描述"我是谁、我在干什么"：
 
 | 位 | `0` | `1` |
 |---|---|---|
-| `[0]` | Unprivileged | Privileged |
+| `[0]` | Unprivileged | Privileged（特权，如内核） |
 | `[1]` | Secure | Non-secure |
 | `[2]` | Data | Instruction |
 
@@ -388,127 +467,20 @@ end
 
 ---
 
-## 9. 验证视角
+## 9. 复位规则
 
-### 9.1 VALID 被阻塞时保持
+两个全局信号：`ACLK`（时钟，上升沿采样）、`ARESETn`（复位，**低有效**——平时 1，拉 0 复位）。
 
-可对五个通道分别检查：
-
-```systemverilog
-property p_awvalid_sticky;
-    @(posedge ACLK) disable iff (!ARESETn)
-    // AW 被阻塞时，下一拍 AWVALID 仍必须为 1。
-    AWVALID && !AWREADY |=> AWVALID;
-endproperty
-
-property p_bvalid_sticky;
-    @(posedge ACLK) disable iff (!ARESETn)
-    // 同一规则也适用于反向的 B 通道，此时 Source 是 Slave。
-    BVALID && !BREADY |=> BVALID;
-endproperty
-```
-
-### 9.2 Payload 在阻塞期间稳定
-
-```systemverilog
-property p_aw_stable;
-    @(posedge ACLK) disable iff (!ARESETn)
-    // 地址通道阻塞时，VALID 与整个 AW payload 都必须保持。
-    AWVALID && !AWREADY |=> AWVALID && $stable({AWADDR, AWPROT});
-endproperty
-
-property p_w_stable;
-    @(posedge ACLK) disable iff (!ARESETn)
-    // 写数据阻塞时不能提前切换到下一笔数据。
-    WVALID && !WREADY |=> WVALID && $stable({WDATA, WSTRB});
-endproperty
-
-property p_r_stable;
-    @(posedge ACLK) disable iff (!ARESETn)
-    // Master 未接收时，Slave 必须保存返回数据和响应。
-    RVALID && !RREADY |=> RVALID && $stable({RDATA, RRESP});
-endproperty
-```
-
-### 9.3 复位时输出 VALID 为低
-
-规范要求 Master 的 `ARVALID/AWVALID/WVALID` 和 Slave 的 `RVALID/BVALID` 在复位期间为低。
-
-```systemverilog
-property p_valid_low_in_reset;
-    @(posedge ACLK)
-    // 示例同时观察双方接口；实际 checker 通常按 Master/Slave 责任拆开绑定。
-    !ARESETn |-> !(AWVALID || WVALID || ARVALID || BVALID || RVALID);
-endproperty
-```
-
-实际绑定断言时要根据接口角色拆分，避免一个 checker 同时驱动双方责任。
-
-### 9.4 B 响应不能凭空出现
-
-可在 checker 中维护已接受 AW/W 计数：
+**复位期间（ARESETn=0）所有 VALID 必须为低**：
 
 ```text
-aw_count += AWVALID && AWREADY
-w_count  += WVALID  && WREADY
-b_count  += BVALID  && BREADY
-
-任意时刻：b_count <= min(aw_count, w_count)
+Master 的 AWVALID / WVALID / ARVALID -> 必须 = 0
+Slave 的  BVALID / RVALID            -> 必须 = 0
 ```
 
-对于 single-outstanding Slave，还可以断言 `BVALID` 产生前已各接受一次 AW 和 W。
+**为什么？** VALID=1 等于宣称"有货"，复位期间数据是垃圾，对方采样会出错。所以复位时不许"喊有货"。
 
-### 9.5 写 Monitor 不能只看同拍
-
-AW 和 W 独立，monitor 应维护两个队列：
-
-```text
-AW handshake -> aw_queue.push_back(address/prot)
-W  handshake -> w_queue.push_back(data/strb)
-
-当两个队列都非空：
-    取各自最早元素，形成一个待响应 write transaction
-
-B handshake：
-    给最早待响应 write transaction 填入 BRESP 并发布
-```
-
-AXI4-Lite 没有 ID，事务必须按顺序匹配。
-
-### 9.6 读 Monitor
-
-```text
-AR handshake -> read_request_queue.push_back(address/prot)
-R  handshake -> 取最早请求，填入 RDATA/RRESP，发布事务
-```
-
-### 9.7 Monitor 关注的是握手
-
-只有这些事件才进入队列：
-
-```systemverilog
-// fire 事件是 monitor 入队和协议计数的唯一依据；只有 VALID 不能算传输。
-aw_fire = AWVALID && AWREADY;
-w_fire  = WVALID  && WREADY;
-b_fire  = BVALID  && BREADY;
-ar_fire = ARVALID && ARREADY;
-r_fire  = RVALID  && RREADY;
-```
-
-VALID 单独为高只表示 Source 正在等待，不能重复采样成多个 transfer。
-
-| 错误 | 后果 | 正确做法 |
-|---|---|---|
-| 只在 AW/W 同拍时写 | 通道错开就丢事务 | 独立保存 AW 和 W |
-| Source 等 READY 才拉 VALID | 双方互等导致死锁 | Source 有数据就拉 VALID |
-| VALID 阻塞时改变 payload | 接收方得到不确定内容 | 保持 VALID 和 payload |
-| `BVALID` 未等 AW/W 都接收 | 写响应凭空出现 | 同时追踪地址和数据 |
-| `RVALID && !RREADY` 时改 RDATA | Master 采样到错误数据 | 保持 RDATA/RRESP |
-| 用 VALID 单独计数 transfer | 一个阻塞传输被重复计数 | 只在 VALID && READY 计数 |
-| 忽略 `WSTRB` | 部分写破坏其他字节 | 按字节合并或明确报错 |
-| 把 AXI4-Lite 当 APB | 强制地址数据同拍 | 接受五通道独立性 |
-| 认为 Lite 不允许 outstanding | 错过协议能力 | 无 ID 但可多笔，必须有序 |
-| 未限制返回槽却继续接收请求 | 响应被覆盖 | 使用 FIFO 或拉低 READY |
+**READY 没有这个要求**：READY 只是"我准备好了"，不会引发传输，复位时高低无所谓。
 
 ---
 
@@ -520,7 +492,7 @@ VALID 单独为高只表示 Source 正在等待，不能重复采样成多个 tr
 |---|---|
 | 🔴 高 | 五通道、`VALID/READY`、AW/W 独立、B/R 响应依赖 |
 | 🟡 中 | backpressure、`WSTRB`、顺序和 outstanding |
-| 🟢 进阶 | `AxPROT`、monitor、SVA 和实现优化 |
+| 🟢 进阶 | `AxPROT`、复位规则和实现优化 |
 
 ### 10.2 易错点
 
@@ -531,6 +503,7 @@ VALID 单独为高只表示 Source 正在等待，不能重复采样成多个 tr
 | AW 和 W 必须同时到达 | 两个通道独立，可以任意先后 |
 | 收到 AW 就可以产生 B | 必须先接收完整的 AW 和 W |
 | 阻塞期间可以改变 payload | VALID 保持时 payload 也必须稳定 |
+| `VALID` 一定由 Master 驱动 | B/R 通道的 Source 是 Slave |
 
 ### 10.3 最重要的 10 条规则
 
@@ -543,7 +516,7 @@ VALID 单独为高只表示 Source 正在等待，不能重复采样成多个 tr
 7. B 必须在 AW 和 W 都被接收后产生。
 8. R 必须对应已经接收的 AR。
 9. AXI4-Lite 每笔只有 1 beat、无 ID、按序完成。
-10. Monitor 必须按各通道握手重建完整事务。
+10. 复位期间所有 VALID 必须为低。
 
 ---
 
