@@ -57,6 +57,7 @@
 - 地平线 · 数字IC验证 · 校招（UVM 的 Driver、Sequencer、Monitor、Agent 四大组件各自功能）
 - 蔚来 · AI计算芯片验证 · 校招 · 一面（验证环境组件与构建顺序）
 - 字节跳动 · AI芯片研发 · 校招 · 一面（sequence 和 monitor 的数据传输方式）
+- 昕原 · 数字IC验证 · 实习（monitor 和 scoreboard 之间的通信方式）
 - 面试书《Cracking Digital VLSI Verification Interview》· 第6章 Q12-Q13、Q17、Q18（对应题目：Agent 包含哪些组件；sequencer 和 driver 是什么；monitor 与 scoreboard 的区别）
 
 **考点**
@@ -121,6 +122,7 @@
 
 - 字节跳动 · 数字IC验证 · 实习 · 高频题（在 TB 中调用 run_test 后触发整个 UVM 平台执行的原理）
 - 墨芯 · 数字IC验证 · 校招（case package 中多 case 场景下，UVM 通过命令行指定启动 case 的底层原理）
+- 韬润 · 数字IC验证 · 实习（uvm 环境的启动流程）
 - 面试书《Cracking Digital VLSI Verification Interview》· 第6章 Q19（对应题目：run_test 如何启动 testbench）
 
 **考点**
@@ -284,6 +286,7 @@ uvm_component 和 uvm_object 不是并列关系，**uvm_component 继承自 uvm_
 - 豪威科技 · 数字IC验证 · 校招 · 一面（config_db 四个参数含义）
 - 通用 · 数字IC验证 · 实习 · 基础面经（config_db 机制）
 - 某TPU · 数字IC验证 · 校招 · 面经（config_db 核心作用与各参数含义）
+- 泰凌微 · 数字IC验证 · 实习（config_db 的参数数量与含义）
 - 面试书《Cracking Digital VLSI Verification Interview》· 第6章 Q59（对应题目：uvm_config_db 的 get 和 set 方法怎么用——四参数含义）
 
 **考点**
@@ -519,6 +522,7 @@ tlm_fifo 本质是组件之间的"中间仓库"：发送方把 transaction 存�
 - 海光 · 数字IC验证 · 校招 · NoC方向（UVM 核心 phase 的分类与简要介绍）
 - 蔚来 · AI计算芯片验证 · 校招 · 一面（uvm phase 机制完整分类以及可放置延时的 phase）
 - 泰凌微 · 数字IC验证 · 校招 · 一面二面（uvm phase 机制）
+- 行云集成电路 · 数字IC验证 · 实习（task phase 和 function phase 的理解、属于 task phase 的类型）
 - 面试书《Cracking Digital VLSI Verification Interview》· 第6章 Q55（对应题目：UVM 组件有哪些 phase；run_phase 有哪些子 phase）
 
 **考点**
@@ -552,6 +556,9 @@ UVM 的 phase 分两大类，分水岭是**能不能耗仿真时间**：
 - 通用 · 数字IC验证 · 实习 · 基础面经（phase 机制：各 phase 执行顺序）
 - 字节跳动 · 数字IC验证 · 实习 · 高频题（run_test 开始执行的是哪个 phase、UVM 中 phase 的完整分类与分组）
 - 中兴通讯 · 数字IC验证 · 校招 · 领军计划（UVM Phase 机制的总体执行顺序）
+- 泰凌微 · 数字IC验证 · 实习（build 与 connect 的先后顺序、执行流程以及顺序原因）
+- 韬润 · 数字IC验证 · 实习（build phase 的执行顺序以及顺序原因）
+- 行云集成电路 · 数字IC验证 · 实习（build 和 connect phase 的顺序）
 - 面试书《Cracking Digital VLSI Verification Interview》· 第6章 Q55（对应题目：UVM 组件有哪些 phase——三组执行顺序）
 
 **考点**
@@ -581,6 +588,7 @@ UVM 的 phase 分两大类，分水岭是**能不能耗仿真时间**：
 - 小鹏汽车 · SOC验证 · 校招（区别；main_phase 写了 raise_objection 而 run_phase 没写，run_phase 能否正常运行）
 - 某TPU公司 · 数字IC验证 · 校招（两者关系；main_phase 里 raise/drop objection 时 run_phase 是否继续执行）
 - 蔚来 · AI计算芯片验证 · 校招 · 一面（run phase 和 main phase 能否同时使用）
+- 行云集成电路 · 数字IC验证 · 实习（run phase 和 12 个子 phase 的关系，能否同时使用）
 - 面试书《Cracking Digital VLSI Verification Interview》· 第6章 Q55（对应题目：run_phase 的 12 个子 phase，含 main）
 
 **考点**
@@ -739,6 +747,7 @@ objection 是 UVM 用来**控制 task phase 何时结束**的机制，本质是�
 - 燧原科技 · 数字IC验证 · 校招 · AI方向（sequence、driver、sequencer 三者工作交互逻辑）
 - 某公司 · 数字IC验证 · 校招 · 一面（sequencer 与 driver 交互逻辑）
 - 泰凌微 · 数字IC验证 · 校招 · 一面二面（seq 和 drv 握手）
+- 泰凌微 · 数字IC验证 · 实习（sequence、sequencer、driver 的功能与互相通信机制）
 - 面试书《Cracking Digital VLSI Verification Interview》· 第6章 Q21（对应题目：sequencer 与 driver 之间的协议握手是怎样的）
 
 **考点**
@@ -887,6 +896,7 @@ sequence 启动后有五个回调按固定顺序执行：pre_start、pre_body、
 - 蔚来 · AI计算芯片验证 · 校招 · 一面（virtual sequence/sequencer 原理与使用意义）
 - ArmChina · 数字IC设计验证 · 校招 · 三面（virtual sequence 和 sequence 区别）
 - 泰凌微 · 数字IC验证 · 校招 · 一面二面（virtual sequence）
+- 昕原 · 数字IC验证 · 实习（virtual sequence 的意义）
 - 面试书《Cracking Digital VLSI Verification Interview》· 第6章 Q43（对应题目：什么是 virtual sequence？有什么好处）
 
 **考点**
