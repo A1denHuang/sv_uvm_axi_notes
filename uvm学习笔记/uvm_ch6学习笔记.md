@@ -97,7 +97,7 @@ endtask
 
 **拆分后：driver 只管"打"（几乎不再改）**
 
-> "打" = driver 把 transaction 按协议时序驱动到接口上（拉 valid、放数据、握手）——**driver 的唯一职责**，不掺和测试意图。
+"打" = driver 把 transaction 按协议时序驱动到接口上（拉 valid、放数据、握手）——**driver 的唯一职责**，不掺和测试意图。
 
 ```systemverilog
 task my_driver::main_phase(uvm_phase phase);
@@ -257,7 +257,7 @@ uvm_config_db #(uvm_object_wrapper)::set(
 | 类型 wrapper | 启动时 factory 创建，可继续 override（推荐） |
 | sequence 实例 | 可先改对象字段，但实例已定死 |
 
-> 工程上通常更推荐 **test/virtual sequence 显式 `start()`**——控制关系最清晰，default_sequence 留给简单场景。
+工程上通常更推荐 **test/virtual sequence 显式 `start()`**——控制关系最清晰，default_sequence 留给简单场景。
 
 **starting_phase：sequence 怎么知道自己在哪个 phase？**
 

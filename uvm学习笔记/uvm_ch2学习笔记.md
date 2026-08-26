@@ -111,7 +111,7 @@ flowchart LR
 | monitor | 有，监控实际输入 | 有，监控实际输出 |
 | 工作模式 | active | passive |
 
-输入 agent 既产生驱动，也监测真正送到 DUT 的内容。输出 agent 只监测 DUT 输出，不应主动驱动输出端。  
+输入 agent 既产生驱动，也监测真正送到 DUT 的内容。输出 agent 只监测 DUT 输出，不应主动驱动输出端。 
 下面这张图把完整平台中的激励、实际结果和期望结果放在一起：
 
 ```mermaid
@@ -134,7 +134,7 @@ flowchart TD
     RESULT -->|"不一致"| FAIL["FAIL"]
 ```
 
-读图时可以抓住两条主线：上方是“激励如何进入 DUT”，下方是“期望结果和实际结果如何产生”。  
+读图时可以抓住两条主线：上方是“激励如何进入 DUT”，下方是“期望结果和实际结果如何产生”。 
 scoreboard 自己不产生数据，它只负责接收 expected 与 actual，然后判断 DUT 的行为是否正确。
 
 ---
@@ -142,7 +142,7 @@ scoreboard 自己不产生数据，它只负责接收 expected 与 actual，然�
 ## 2.2 只有 driver 的验证平台（🟡 中）
 ### 2.2.1 最简单的验证平台（🟡 中）
 **教材 DUT**
-本章使用一个非常简单的环回 DUT。 输入有效时，DUT 把 <code>rxd</code> 延迟后送到 <code>txd</code>，并把 <code>rx_dv</code> 送到 <code>tx_en</code>。
+本章使用一个非常简单的环回 DUT。 输入有效时，DUT 把 `rxd` 延迟后送到 `txd`，并把 `rx_dv` 送到 `tx_en`。
 ```systemverilog
 module dut (
     input  logic       clk,      // 时钟
@@ -170,12 +170,12 @@ endmodule
 
 | 信号 | 方向 | 含义 |
 |------|------|------|
-| <code>clk</code> | 输入 | 工作时钟 |
-| <code>rst_n</code> | 输入 | 低有效复位 |
-| <code>rxd[7:0]</code> | 输入 | 接收数据 |
-| <code>rx_dv</code> | 输入 | 接收数据有效 |
-| <code>txd[7:0]</code> | 输出 | 发送数据 |
-| <code>tx_en</code> | 输出 | 发送数据有效 |
+| `clk` | 输入 | 工作时钟 |
+| `rst_n` | 输入 | 低有效复位 |
+| `rxd[7:0]` | 输入 | 接收数据 |
+| `rx_dv` | 输入 | 接收数据有效 |
+| `txd[7:0]` | 输出 | 发送数据 |
+| `tx_en` | 输出 | 发送数据有效 |
 
 **driver 的职责**
 driver 是信号级激励的执行者。 它负责：
@@ -194,39 +194,39 @@ driver 不应该长期承担：
 
 本节前半为了逐步学习，暂时在 driver 内部产生随机数据；加入 sequence 后会移除这部分职责。
 
-> **举例**：假设要发一个 AXI 写请求，driver 本该只管"把信号按时序拍出去"，但本节开头为了简单，让 driver 自己随机生成了地址和数据：
->
-> ```systemverilog
-> // ❌ 学习阶段的临时写法：driver 自己决定发什么
-> task run_phase(uvm_phase phase);
->     forever begin
->         seq_item_port.get_next_item(req);
->         req.addr = $urandom;      // 随机化由 driver 做了（职责越界）
->         req.data = $urandom;
->         vif.cb.addr  <= req.addr; // driver 真正该做的：驱动信号
->         vif.cb.data <= req.data;
->         @(vif.cb);
->         seq_item_port.item_done();
->     end
-> endtask
-> ```
->
-> 加入 sequence 之后，随机化移到了 sequence 的 `body()` 里，driver 回归纯粹：
->
-> ```systemverilog
-> // ✅ 分工正确后：sequence 决定发什么，driver 只管怎么发
-> task run_phase(uvm_phase phase);
->     forever begin
->         seq_item_port.get_next_item(req);  // req 已经被 sequence 随机化好了
->         vif.cb.addr  <= req.addr;          // driver 只做信号驱动
->         vif.cb.data <= req.data;
->         @(vif.cb);
->         seq_item_port.item_done();
->     end
-> endtask
-> ```
+**举例**：假设要发一个 AXI 写请求，driver 本该只管"把信号按时序拍出去"，但本节开头为了简单，让 driver 自己随机生成了地址和数据：
+
+```systemverilog
+// ❌ 学习阶段的临时写法：driver 自己决定发什么
+task run_phase(uvm_phase phase);
+    forever begin
+        seq_item_port.get_next_item(req);
+        req.addr = $urandom;      // 随机化由 driver 做了（职责越界）
+        req.data = $urandom;
+        vif.cb.addr  <= req.addr; // driver 真正该做的：驱动信号
+        vif.cb.data <= req.data;
+        @(vif.cb);
+        seq_item_port.item_done();
+    end
+endtask
+```
+
+加入 sequence 之后，随机化移到了 sequence 的 `body()` 里，driver 回归纯粹：
+
+```systemverilog
+// ✅ 分工正确后：sequence 决定发什么，driver 只管怎么发
+task run_phase(uvm_phase phase);
+    forever begin
+        seq_item_port.get_next_item(req);  // req 已经被 sequence 随机化好了
+        vif.cb.addr  <= req.addr;          // driver 只做信号驱动
+        vif.cb.data <= req.data;
+        @(vif.cb);
+        seq_item_port.item_done();
+    end
+endtask
+```
 **最简单的 driver**
-UVM 中 driver 应派生自 <code>uvm_driver</code>。
+UVM 中 driver 应派生自 `uvm_driver`。
 ```systemverilog
 class my_driver extends uvm_driver;
     function new(
@@ -254,12 +254,12 @@ endtask
 ```
 这个例子还不是规范平台，主要用于认识 UVM component 的基本外形。
 **component 的 new 函数**
-所有派生自 <code>uvm_component</code> 的类，其构造函数通常有两个参数。
+所有派生自 `uvm_component` 的类，其构造函数通常有两个参数。
 
 | 参数 | 含义 |
 |------|------|
-| <code>name</code> | 当前实例在 UVM 树中的名字 |
-| <code>parent</code> | 当前实例的父 component |
+| `name` | 当前实例在 UVM 树中的名字 |
+| `parent` | 当前实例的父 component |
 
 标准写法：
 ```systemverilog
@@ -267,18 +267,18 @@ function new(string name, uvm_component parent);
     super.new(name, parent);      // 必须先完成父类构造
 endfunction
 ```
-<code>name</code> 不是类名，而是实例名。 同一个类可以创建多个实例，每个实例应有自己的 name。 <code>parent</code> 决定组件挂到 UVM 树的哪个位置。
+`name` 不是类名，而是实例名。 同一个类可以创建多个实例，每个实例应有自己的 name。 `parent` 决定组件挂到 UVM 树的哪个位置。
 **main_phase**
-UVM 使用 phase 管理组件生命周期。 <code>main_phase</code> 是任务 phase，可以消耗仿真时间。 driver 的主要运行行为通常放在 <code>main_phase</code> 或其他 run-time phase 中。 典型耗时语句包括：
+UVM 使用 phase 管理组件生命周期。 `main_phase` 是任务 phase，可以消耗仿真时间。 driver 的主要运行行为通常放在 `main_phase` 或其他 run-time phase 中。 典型耗时语句包括：
 
-- <code>@(posedge clk)</code>。
-- <code>#10</code>。
+- `@(posedge clk)`。
+- `#10`。
 - 阻塞式 TLM get。
 - 等待 semaphore、mailbox 或 event。
 
 普通函数调用、变量赋值和日志打印本身不推进仿真时间。
 **UVM 日志宏**
-教材使用 <code>uvm_info</code> 代替普通 <code>$display</code>。
+教材使用 `uvm_info` 代替普通 `$display`。
 ```systemverilog
 `uvm_info("DRV", "begin to drive packet", UVM_LOW)
 ```
@@ -286,17 +286,17 @@ UVM 使用 phase 管理组件生命周期。 <code>main_phase</code> 是任务 p
 
 | 参数 | 示例 | 含义 |
 |------|------|------|
-| ID | <code>"DRV"</code> | 日志分类标签 |
-| message | <code>"begin..."</code> | 具体信息 |
-| verbosity | <code>UVM_LOW</code> | 冗余度级别 |
+| ID | `"DRV"` | 日志分类标签 |
+| message | `"begin..."` | 具体信息 |
+| verbosity | `UVM_LOW` | 冗余度级别 |
 
 常见 verbosity：
 
 | 级别 | 使用建议 |
 |------|----------|
-| <code>UVM_LOW</code> | 默认希望看到的重要过程 |
-| <code>UVM_MEDIUM</code> | 普通调试信息 |
-| <code>UVM_HIGH</code> | 更详细的过程信息 |
+| `UVM_LOW` | 默认希望看到的重要过程 |
+| `UVM_MEDIUM` | 普通调试信息 |
+| `UVM_HIGH` | 更详细的过程信息 |
 
 UVM 日志通常自动包含：
 
@@ -330,27 +330,28 @@ endclass
 - 通过 type_id 创建实例。
 - 在后续使用 type override 或 instance override。
 
-> **规则**：派生自 <code>uvm_component</code> 的自定义 component 通常使用 <code>uvm_component_utils</code>。
+> **规则**：派生自 `uvm_component` 的自定义 component 通常使用 `uvm_component_utils`。
+
 **run_test**
-最初的示例手工 new driver，并显式调用 <code>main_phase</code>。 这并没有真正使用 UVM 的生命周期管理。 加入 factory 注册后，可以写：
+最初的示例手工 new driver，并显式调用 `main_phase`。 这并没有真正使用 UVM 的生命周期管理。 加入 factory 注册后，可以写：
 ```systemverilog
 initial begin
     run_test("my_driver");        // 按注册类型名创建测试顶层
 end
 ```
-<code>run_test</code> 会启动 UVM phase 机制。 本章初期把 driver 临时作为树根，仅用于展示自动创建和 phase 调用。 无论传给 <code>run_test</code> 的类型是什么，UVM 创建的根实例名通常是： <code>uvm_test_top</code> 需要区分：
+`run_test` 会启动 UVM phase 机制。 本章初期把 driver 临时作为树根，仅用于展示自动创建和 phase 调用。 无论传给 `run_test` 的类型是什么，UVM 创建的根实例名通常是： `uvm_test_top` 需要区分：
 
 | 名称 | 示例 | 作用 |
 |------|------|------|
-| 类型名 | <code>my_driver</code> | factory 查找哪个类 |
-| 实例名 | <code>uvm_test_top</code> | UVM 树中根结点的名字 |
+| 类型名 | `my_driver` | factory 查找哪个类 |
+| 实例名 | `uvm_test_top` | UVM 树中根结点的名字 |
 
 **为什么要使用 type_id::create**
-普通 SystemVerilog 创建： <code>drv = new(&quot;drv&quot;, this);</code> UVM component 推荐创建： <code>drv = my_driver::type_id::create(&quot;drv&quot;, this);</code> 二者都能创建对象，但 <code>type_id::create</code> 会经过 factory。 只有经过 factory 创建，类型替换机制才有机会生效。
-> **工程规则**：UVM 组件注册用 utils 宏，创建用 <code>type_id::create</code>。
+普通 SystemVerilog 创建： `drv = new("drv", this);` UVM component 推荐创建： `drv = my_driver::type_id::create("drv", this);` 二者都能创建对象，但 `type_id::create` 会经过 factory。 只有经过 factory 创建，类型替换机制才有机会生效。
+> **工程规则**：UVM 组件注册用 utils 宏，创建用 `type_id::create`。
 ### 2.2.3 加入 objection 机制（🟡 中）
 **为什么 main_phase 刚开始就结束**
-UVM 不会因为某个 component 的 <code>main_phase</code> 仍有后续代码，就自动一直等待。 如果当前任务 phase 中没有 objection，UVM 可以结束该 phase，并终止仍在其中运行的进程。 因此，driver 可能只打印“main_phase is called”，还没来得及等待时钟就被结束。
+UVM 不会因为某个 component 的 `main_phase` 仍有后续代码，就自动一直等待。 如果当前任务 phase 中没有 objection，UVM 可以结束该 phase，并终止仍在其中运行的进程。 因此，driver 可能只打印“main_phase is called”，还没来得及等待时钟就被结束。
 **raise 与 drop**
 ```systemverilog
 task my_driver::main_phase(uvm_phase phase);
@@ -370,8 +371,8 @@ objection 必须成对。
 
 | 操作 | 含义 |
 |------|------|
-| <code>raise_objection</code> | 阻止当前 phase 立即结束 |
-| <code>drop_objection</code> | 撤销自己的反对票 |
+| `raise_objection` | 阻止当前 phase 立即结束 |
+| `drop_objection` | 撤销自己的反对票 |
 
 只有当所有 objection 都被撤销后，phase 才能结束。
 **raise 必须足够早**
@@ -383,12 +384,12 @@ task my_driver::main_phase(uvm_phase phase);
 endtask
 ```
 正确原则：
-> 在本 phase 第一个耗时语句之前 raise objection。
+在本 phase 第一个耗时语句之前 raise objection。
 日志打印可以放在 raise 前，因为它通常不推进仿真时间；但统一把 raise 放在开头更清楚。
 **objection 应由谁控制**
 本章早期把 objection 放在 driver 中是为了教学。 加入 sequence 后，更合理的做法是让控制测试时长的 sequence 或 test 管理 objection。 原因：
 
-- driver 是常驻组件，通常有 <code>while (1)</code>。
+- driver 是常驻组件，通常有 `while (1)`。
 - driver 不知道本次测试计划发送多少事务。
 - sequence 最清楚激励何时开始、何时结束。
 
@@ -407,12 +408,12 @@ sequenceDiagram
 ```
 ### 2.2.4 加入 virtual interface（🔴 高）
 **为什么不能写绝对层次路径**
-下面的写法把 driver 与 <code>top_tb</code> 层次绑定：
+下面的写法把 driver 与 `top_tb` 层次绑定：
 ```systemverilog
 top_tb.rxd   <= data;
 @(posedge top_tb.clk);
 ```
-一旦 testbench 层次变化，driver 就要修改。 例如时钟从 <code>top_tb.clk</code> 变成 <code>top_tb.clk_gen.clk</code>，所有引用都可能失效。 宏只能缓解单一路径变化，不能真正消除信号与层次结构的耦合。
+一旦 testbench 层次变化，driver 就要修改。 例如时钟从 `top_tb.clk` 变成 `top_tb.clk_gen.clk`，所有引用都可能失效。 宏只能缓解单一路径变化，不能真正消除信号与层次结构的耦合。
 **定义 interface**
 ```systemverilog
 interface my_if(input logic clk, input logic rst_n);
@@ -420,7 +421,7 @@ interface my_if(input logic clk, input logic rst_n);
     logic       valid;            // 数据有效
 endinterface
 ```
-在 <code>top_tb</code> 中创建输入和输出 interface。
+在 `top_tb` 中创建输入和输出 interface。
 ```systemverilog
 my_if input_if (clk, rst_n);
 my_if output_if(clk, rst_n);
@@ -440,7 +441,7 @@ class my_driver extends uvm_driver;
     virtual my_if vif;            // 指向 top_tb 中真实 interface 实例
 endclass
 ```
-之后 driver 只通过 <code>vif</code> 操作信号。
+之后 driver 只通过 `vif` 操作信号。
 ```systemverilog
 @(posedge vif.clk);
 vif.data  <= req.data;
@@ -448,7 +449,7 @@ vif.valid <= 1'b1;
 ```
 这样 driver 不再知道 interface 在 HDL 层次中的绝对路径。
 **config_db 的 set**
-在 <code>top_tb</code> 中把 interface 放入 config_db。
+在 `top_tb` 中把 interface 放入 config_db。
 ```systemverilog
 initial begin
     uvm_config_db#(virtual my_if)::set(
@@ -467,7 +468,7 @@ end
 4. 数据值是什么。
 
 **config_db 的 get**
-driver 在 <code>build_phase</code> 中取出 interface。
+driver 在 `build_phase` 中取出 interface。
 ```systemverilog
 function void my_driver::build_phase(uvm_phase phase);
     super.build_phase(phase);     // 保留父类必要行为
@@ -481,12 +482,12 @@ function void my_driver::build_phase(uvm_phase phase);
     end
 endfunction
 ```
-get 失败后不能继续驱动，因此使用 <code>uvm_fatal</code>。
+get 失败后不能继续驱动，因此使用 `uvm_fatal`。
 **uvm_fatal**
 ```systemverilog
 `uvm_fatal("NO_VIF", "virtual interface must be set")
 ```
-<code>uvm_fatal</code> 只有 ID 和 message 两个主要参数。 它表示平台存在无法恢复的问题，报告后会结束仿真。 适用场景：
+`uvm_fatal` 只有 ID 和 message 两个主要参数。 它表示平台存在无法恢复的问题，报告后会结束仿真。 适用场景：
 
 - virtual interface 未配置。
 - 关键配置对象为空。
@@ -511,7 +512,7 @@ get 失败后不能继续驱动，因此使用 <code>uvm_fatal</code>。
 **为什么 get 失败要用 fatal 而不是 error？** 拿不到 interface 后驱动全部会崩——与其在信号驱动时冒出难懂的 X 状态错误，不如在 build 阶段就"验尸"：明确指出"vif 没配置，后面没法玩，停吧"。 错误要早爆、爆得清楚。
 
 **config_db 类型必须匹配**
-config_db 是参数化类。 传递 int： <code>uvm_config_db#(int)::set(null, &quot;uvm_test_top&quot;, &quot;packet_num&quot;, 100);</code> 获取 int：
+config_db 是参数化类。 传递 int： `uvm_config_db#(int)::set(null, "uvm_test_top", "packet_num", 100);` 获取 int：
 ```systemverilog
 int packet_num;
 if (!uvm_config_db#(int)::get(this, "", "packet_num", packet_num))
@@ -528,14 +529,14 @@ set 和 get 需要同时匹配（三把钥匙必须同时对上）：
 任何一个对不上，get 返回 0，然后 `uvm_fatal` 就炸了——所以报错信息写清楚 `"xxx was not configured"`，一眼定位是哪个配置没传对。
 
 **build_phase**
-<code>build_phase</code> 是函数 phase，不消耗仿真时间。 主要用途：
+`build_phase` 是函数 phase，不消耗仿真时间。 主要用途：
 
 - 创建子 component。
 - 读取配置。
 - 根据配置决定平台结构。
 - 准备端口和成员对象。
 
-执行顺序： <code>树根 -&gt; 中间结点 -&gt; 树叶</code> 即 top-down。 <code>build_phase</code> 通常在仿真时间 0 完成。
+执行顺序： `树根 -> 中间结点 -> 树叶` 即 top-down。 `build_phase` 通常在仿真时间 0 完成。
 
 ---
 
@@ -582,10 +583,10 @@ endclass
 | 生命周期 | 通常贯穿整个仿真 | 按需创建和销毁 |
 | 是否进入 UVM 树 | 是 | 否 |
 | new 参数 | name、parent | 通常只有 name |
-| 注册宏 | <code>uvm_component_utils</code> | <code>uvm_object_utils</code> |
-| 创建方式 | <code>type_id::create(name, parent)</code> | <code>type_id::create(name)</code> |
+| 注册宏 | `uvm_component_utils` | `uvm_object_utils` |
+| 创建方式 | `type_id::create(name, parent)` | `type_id::create(name)` |
 
-<code>uvm_sequence_item</code> 最终继承自 <code>uvm_object</code>。 因此 transaction 不是 UVM 树结点。
+`uvm_sequence_item` 最终继承自 `uvm_object`。 因此 transaction 不是 UVM 树结点。
 
 **driver 把 transaction 串行化**
 driver 要把一个 transaction 转换为 interface 上的 byte 流。
@@ -616,7 +617,7 @@ endtask
 这一过程叫 serialization 或 packing。 monitor 执行相反的 deserialization 或 unpacking。
 ### 2.3.2 加入 env（🔴 高）
 **为什么需要 env**
-<code>run_test</code> 只创建一个测试顶层。 完整平台却有 driver、monitor、model 和 scoreboard 等多个组件。 因此需要一个容器统一创建这些组件。 UVM 中这个容器通常派生自 <code>uvm_env</code>。
+`run_test` 只创建一个测试顶层。 完整平台却有 driver、monitor、model 和 scoreboard 等多个组件。 因此需要一个容器统一创建这些组件。 UVM 中这个容器通常派生自 `uvm_env`。
 ```systemverilog
 class my_env extends uvm_env;                 // env 容器：负责统一创建平台组件
     my_driver drv;                            // 声明 driver 句柄
@@ -632,13 +633,13 @@ class my_env extends uvm_env;                 // env 容器：负责统一创建
 endclass
 ```
 **parent 建立树形关系**
-创建 driver 时： <code>drv = my_driver::type_id::create(&quot;drv&quot;, this);</code> 这里：
+创建 driver 时： `drv = my_driver::type_id::create("drv", this);` 这里：
 
-- <code>"drv"</code> 是 driver 实例名。
-- <code>this</code> 指向当前 env。
+- `"drv"` 是 driver 实例名。
+- `this` 指向当前 env。
 - driver 的 parent 是 env。
 
-路径因此变成： <code>uvm_test_top.drv</code> 加入 base_test 后会继续变为： <code>uvm_test_top.env.i_agt.drv</code> 路径中的每一段都来自 create 时传入的实例名。
+路径因此变成： `uvm_test_top.drv` 加入 base_test 后会继续变为： `uvm_test_top.env.i_agt.drv` 路径中的每一段都来自 create 时传入的实例名。
 **路径变化必须同步配置**
 如果 driver 从根结点移动到 env 之下：
 ```text
@@ -646,7 +647,7 @@ endclass
 新路径：uvm_test_top.drv
 ```
 那么 config_db set 的目标路径也必须更新。 这是初学时最常见的 virtual interface 获取失败原因之一。
-> **调试方法**：使用 <code>get_full_name()</code> 打印真实组件路径，不要凭记忆猜路径。
+> **调试方法**：使用 `get_full_name()` 打印真实组件路径，不要凭记忆猜路径。
 ### 2.3.3 加入 monitor（🔴 高）
 **monitor 的职责**
 monitor 与 driver 方向相反。
@@ -713,12 +714,12 @@ class my_agent extends uvm_agent;
 endclass
 ```
 **active 与 passive**
-<code>uvm_agent</code> 自带 <code>is_active</code>。 其类型是 <code>uvm_active_passive_enum</code>。
+`uvm_agent` 自带 `is_active`。 其类型是 `uvm_active_passive_enum`。
 
 | 模式 | sequencer | driver | monitor | 用途 |
 |------|-----------|--------|---------|------|
-| <code>UVM_ACTIVE</code> | 创建 | 创建 | 创建 | 主动产生和驱动流量 |
-| <code>UVM_PASSIVE</code> | 不创建 | 不创建 | 创建 | 只观察接口 |
+| `UVM_ACTIVE` | 创建 | 创建 | 创建 | 主动产生和驱动流量 |
+| `UVM_PASSIVE` | 不创建 | 不创建 | 创建 | 只观察接口 |
 
 ```systemverilog
 function void my_agent::build_phase(uvm_phase phase);
@@ -741,7 +742,7 @@ function void my_env::build_phase(uvm_phase phase);
     o_agt.is_active = UVM_PASSIVE;  // 输出端只允许观察
 endfunction
 ```
-更完整的项目常通过 config_db 配置 <code>is_active</code>，减少 env 对 agent 内部的直接控制。
+更完整的项目常通过 config_db 配置 `is_active`，减少 env 对 agent 内部的直接控制。
 **component 必须在 build 阶段完成**
 UVM 要求 component 树最晚在 build 阶段完成。 错误做法：
 ```systemverilog
@@ -758,7 +759,7 @@ function void my_env::build_phase(uvm_phase phase);
 endfunction
 ```
 虽然理论上可在 new 中创建子组件，但会让配置读取和条件构建变得困难。
-> **约定**：component 统一在 <code>build_phase</code> 中创建。
+> **约定**：component 统一在 `build_phase` 中创建。
 ### 2.3.5 加入 reference model（🔴 高）
 **reference model 的作用**
 reference model 根据输入 transaction 计算期望 transaction。 本章 DUT 只是转发数据，因此 model 只复制输入事务。 复杂项目中的 model 可能：
@@ -797,7 +798,7 @@ endclass
 ```
 复制 transaction 很重要。 如果直接把同一个句柄传给多个组件，任一组件修改对象都会影响其他组件看到的内容。
 **Transaction 级通信**
-##### 为什么使用 transaction 级通信
+**为什么使用 transaction 级通信**
 组件之间不应通过层次化变量访问交换数据。 UVM 使用 TLM 端口传递 transaction。 优点：
 
 - 组件边界清晰。
@@ -805,8 +806,8 @@ endclass
 - 容易插入 FIFO、覆盖率收集器或多个订阅者。
 - 平台更容易复用和扩展。
 
-##### analysis_port
-monitor 使用 analysis_port 广播事务。 <code>uvm_analysis_port #(my_transaction) ap;</code> 创建： <code>ap = new(&quot;ap&quot;, this);</code> 发送： <code>ap.write(tr);                    // 非阻塞广播，不等待接收方处理完成</code> analysis_port 适合：
+**analysis_port**
+monitor 使用 analysis_port 广播事务。 `uvm_analysis_port #(my_transaction) ap;` 创建： `ap = new("ap", this);` 发送： `ap.write(tr);                    // 非阻塞广播，不等待接收方处理完成` analysis_port 适合：
 
 - monitor 发布采集事务。
 - model 发布期望事务。
@@ -814,8 +815,8 @@ monitor 使用 analysis_port 广播事务。 <code>uvm_analysis_port #(my_transa
 
 > **类比**：analysis_port 是"广播喇叭"（推）：喊一声就走，不等接收方处理。 一个货可以同时发给多个订阅者（scoreboard、覆盖率收集器都接同一个喇叭）。
 
-##### blocking_get_port
-消费者可使用 blocking get 取得事务。 <code>uvm_blocking_get_port #(my_transaction) port;</code> 接收： <code>port.get(tr);                    // 没有数据时阻塞等待</code> 发送端 write 非阻塞，而接收端 get 可能阻塞，因此二者之间通常需要 FIFO。
+**blocking_get_port**
+消费者可使用 blocking get 取得事务。 `uvm_blocking_get_port #(my_transaction) port;` 接收： `port.get(tr);                    // 没有数据时阻塞等待` 发送端 write 非阻塞，而接收端 get 可能阻塞，因此二者之间通常需要 FIFO。
 
 > **类比**：blocking_get_port 是"收货口"（拉）：没货就一直等，拿到一个处理一个。
 
@@ -828,11 +829,11 @@ monitor 使用 analysis_port 广播事务。 <code>uvm_analysis_port #(my_transa
 | 接收方 | 可有多个（订阅） | 通常一个 |
 | 谁在用 | monitor、model（发布方） | model、scoreboard（消费方） |
 
-##### analysis FIFO
-<code>uvm_tlm_analysis_fifo #(my_transaction) agt_mdl_fifo;</code> 在 env 的 <code>build_phase</code> 中创建： <code>agt_mdl_fifo = new(&quot;agt_mdl_fifo&quot;, this);</code> FIFO 提供：
+**analysis FIFO**
+`uvm_tlm_analysis_fifo #(my_transaction) agt_mdl_fifo;` 在 env 的 `build_phase` 中创建： `agt_mdl_fifo = new("agt_mdl_fifo", this);` FIFO 提供：
 
-- <code>analysis_export</code>，连接 analysis_port。
-- <code>blocking_get_export</code>，连接 blocking_get_port。
+- `analysis_export`，连接 analysis_port。
+- `blocking_get_export`，连接 blocking_get_port。
 - transaction 暂存空间。
 
 FIFO 的两个口对应：
@@ -854,8 +855,8 @@ sequenceDiagram
     Fifo-->>Mdl: port.get(tr)  拉（没货就阻塞等待）
 ```
 
-##### connect_phase
-连接在 <code>connect_phase</code> 中完成。
+**connect_phase**
+连接在 `connect_phase` 中完成。
 ```systemverilog
 function void my_env::connect_phase(uvm_phase phase);
     super.connect_phase(phase);
@@ -865,27 +866,27 @@ function void my_env::connect_phase(uvm_phase phase);
     mdl.port.connect(agt_mdl_fifo.blocking_get_export);
 endfunction
 ```
-<code>connect_phase</code> 的典型执行顺序是 bottom-up。 <code>树叶 -&gt; 中间结点 -&gt; 树根</code> 这使子组件先准备好端口，父组件再连接它们。
+`connect_phase` 的典型执行顺序是 bottom-up。 树叶 -> 中间结点 -> 树根 这使子组件先准备好端口，父组件再连接它们。
 
 > **完整链路**：monitor `ap.write`（推）→ FIFO 暂存 → model `port.get`（拉）→ 处理 → model `ap.write` → scoreboard。
 
-##### agent 暴露 monitor 端口
-env 不必深入访问 <code>i_agt.mon.ap</code>。 agent 可以对外暴露统一的 <code>ap</code>。
+**agent 暴露 monitor 端口**
+env 不必深入访问 `i_agt.mon.ap`。 agent 可以对外暴露统一的 `ap`。
 ```systemverilog
 function void my_agent::connect_phase(uvm_phase phase);
     super.connect_phase(phase);
     ap = mon.ap;                  // agent.ap 指向 monitor.ap
 endfunction
 ```
-由于 agent 的 connect_phase 先于 env 的 connect_phase 执行，env 连接时 <code>i_agt.ap</code> 已有效。
+由于 agent 的 connect_phase 先于 env 的 connect_phase 执行，env 连接时 `i_agt.ap` 已有效。
 
-> **意义**：封装。 env 只需连 <code>i_agt.ap</code>，不必深入 <code>i_agt.mon.ap</code>。 以后 agent 内部结构变化，外部连接不用改。
+> **意义**：封装。 env 只需连 `i_agt.ap`，不必深入 `i_agt.mon.ap`。 以后 agent 内部结构变化，外部连接不用改。
 ### 2.3.6 加入 scoreboard（🔴 高）
 **scoreboard 的两个输入**
 scoreboard 需要：
 
-- <code>exp_port</code>：接收 reference model 的期望事务。
-- <code>act_port</code>：接收 output monitor 的实际事务。
+- `exp_port`：接收 reference model 的期望事务。
+- `act_port`：接收 output monitor 的实际事务。
 
 ```systemverilog
 class my_scoreboard extends uvm_scoreboard;
@@ -945,14 +946,14 @@ endtask
 ```systemverilog
 `uvm_error("SCB", "compare failed")
 ```
-<code>uvm_error</code> 表示检查失败，但通常不会立即结束仿真。 这允许一次回归收集多个错误。
+`uvm_error` 表示检查失败，但通常不会立即结束仿真。 这允许一次回归收集多个错误。
 
 | 宏 | 用途 | 一般行为 |
 |----|------|----------|
-| <code>uvm_info</code> | 普通信息 | 受 verbosity 控制 |
-| <code>uvm_warning</code> | 可疑但可继续 | 继续仿真 |
-| <code>uvm_error</code> | 明确错误 | 计数并继续 |
-| <code>uvm_fatal</code> | 无法继续的平台错误 | 结束仿真 |
+| `uvm_info` | 普通信息 | 受 verbosity 控制 |
+| `uvm_warning` | 可疑但可继续 | 继续仿真 |
+| `uvm_error` | 明确错误 | 计数并继续 |
+| `uvm_fatal` | 无法继续的平台错误 | 结束仿真 |
 
 ### 2.3.7 加入 field automation（🟡 中）
 **为什么需要字段自动化**
@@ -987,7 +988,7 @@ endclass
 ```
 使用 begin/end 版本时，中间列出所有需要参与自动操作的字段。 字段类型不同，使用的宏也不同。
 
-> **UVM_ALL_ON 的含义**：标志位，表示该字段的**所有自动操作都启用**（compare/copy/print/pack 全要）。 字段类型与宏的对应：单值整型 → <code>uvm_field_int</code>；数组 → <code>uvm_field_array_int</code>；字符串 → <code>uvm_field_string</code>；对象字段 → <code>uvm_field_object</code>。
+> **UVM_ALL_ON 的含义**：标志位，表示该字段的**所有自动操作都启用**（compare/copy/print/pack 全要）。 字段类型与宏的对应：单值整型 → `uvm_field_int`；数组 → `uvm_field_array_int`；字符串 → `uvm_field_string`；对象字段 → `uvm_field_object`。
 **自动方法**
 注册后可直接使用：
 ```systemverilog
@@ -1007,7 +1008,7 @@ tr.pload = new[payload_size];     // 动态数组必须先分配正确大小
 bit_count = tr.unpack_bytes(data_array);
 ```
 **字段顺序影响 pack 顺序**
-<code>pack_bytes</code> 按 field 宏注册顺序打包字段。 例如：
+`pack_bytes` 按 field 宏注册顺序打包字段。 例如：
 ```systemverilog
 `uvm_field_int(dmac, UVM_ALL_ON)
 `uvm_field_int(smac, UVM_ALL_ON)
@@ -1068,7 +1069,7 @@ class my_sequencer extends uvm_sequencer #(my_transaction);
     endfunction
 endclass
 ```
-sequencer 是 parameterized component。 参数 <code>my_transaction</code> 表示它传递哪种 sequence item。
+sequencer 是 parameterized component。 参数 `my_transaction` 表示它传递哪种 sequence item。
 **driver 也要参数化**
 ```systemverilog
 class my_driver extends uvm_driver #(my_transaction);
@@ -1076,7 +1077,7 @@ class my_driver extends uvm_driver #(my_transaction);
     // uvm_driver 中的 req 因参数化而成为 my_transaction 类型
 endclass
 ```
-参数化后，driver 内建的 <code>req</code> 句柄就是 <code>my_transaction</code> 类型。
+参数化后，driver 内建的 `req` 句柄就是 `my_transaction` 类型。
 ### 2.4.2 sequence 机制（🔴 高）
 **sequence 定义**
 ```systemverilog
@@ -1096,20 +1097,20 @@ endclass
 sequence 是 object，不是 component。 因此：
 
 - 不进入 UVM 树。
-- 使用 <code>uvm_object_utils</code>。
+- 使用 `uvm_object_utils`。
 - 有自己的生命周期。
-- 启动后执行 <code>body</code>。
+- 启动后执行 `body`。
 
 **uvm_do 做了什么**
-初学阶段可把 <code>uvm_do(m_trans)</code> 理解为：
+初学阶段可把 `uvm_do(m_trans)` 理解为：
 
-1. 创建 <code>m_trans</code>。
+1. 创建 `m_trans`。
 2. 等待 sequencer 授权。
 3. 随机化 transaction。
 4. 把 transaction 交给 sequencer。
 5. 等待 driver 完成该 transaction。
 
-后续章节会学习 <code>start_item</code> 和 <code>finish_item</code> 的展开写法。 带临时约束：
+后续章节会学习 `start_item` 和 `finish_item` 的展开写法。 带临时约束：
 ```systemverilog
 `uvm_do_with(m_trans, {
     m_trans.pload.size() == 60;
@@ -1129,7 +1130,7 @@ if (is_active == UVM_ACTIVE) begin
     drv.seq_item_port.connect(sqr.seq_item_export);
 end
 ```
-passive agent 没有 driver 和 sequencer，因此连接前必须判断 <code>is_active</code>。
+passive agent 没有 driver 和 sequencer，因此连接前必须判断 `is_active`。
 **driver 获取 item**
 ```systemverilog
 task my_driver::main_phase(uvm_phase phase);
@@ -1144,14 +1145,14 @@ task my_driver::main_phase(uvm_phase phase);
     end
 endtask
 ```
-<code>get_next_item</code> 与 <code>item_done</code> 必须正确配对。 如果漏掉 <code>item_done</code>：
+`get_next_item` 与 `item_done` 必须正确配对。 如果漏掉 `item_done`：
 
 - sequence 可能一直等待。
-- 下一次 <code>uvm_do</code> 不会继续。
+- 下一次 `uvm_do` 不会继续。
 - 仿真表现为“卡住”。
 
 **sequence-driver 握手**
-<code>uvm_do</code> 内部的完整握手分两段：先"请求-授权"（start_item），再"交付-完成"（finish_item）。
+`uvm_do` 内部的完整握手分两段：先"请求-授权"（start_item），再"交付-完成"（finish_item）。
 
 ```mermaid
 sequenceDiagram
@@ -1171,13 +1172,13 @@ sequenceDiagram
     Drv->>Sqr: item_done（这单做完了）
     Sqr-->>Seq: uvm_do 返回
 ```
-<code>uvm_do</code> 通常要等 driver 调用 <code>item_done</code> 后才完成。 这保证 sequence 产生事务的节奏与 driver 实际处理能力同步。
+`uvm_do` 通常要等 driver 调用 `item_done` 后才完成。 这保证 sequence 产生事务的节奏与 driver 实际处理能力同步。
 **get_next_item 与 try_next_item**
 
 | 方法 | 类型 | 没有 transaction 时 |
 |------|------|----------------------|
-| <code>get_next_item</code> | 阻塞 | 一直等待 |
-| <code>try_next_item</code> | 非阻塞 | 立即返回，req 可能为 null |
+| `get_next_item` | 阻塞 | 一直等待 |
+| `try_next_item` | 非阻塞 | 立即返回，req 可能为 null |
 
 ```systemverilog
 forever begin
@@ -1192,7 +1193,7 @@ forever begin
 end
 ```
 **启动 sequence**
-##### 手工 start
+**手工 start**
 可以在 env 的 main_phase 中创建并启动 sequence。
 ```systemverilog
 task my_env::main_phase(uvm_phase phase);
@@ -1203,7 +1204,7 @@ task my_env::main_phase(uvm_phase phase);
     phase.drop_objection(this);                 // 干完收工
 endtask
 ```
-<code>start</code> 的参数告诉 sequence 把 transaction 发给哪个 sequencer。
+`start` 的参数告诉 sequence 把 transaction 发给哪个 sequencer。
 ### 2.4.3 default_sequence 的使用（🔴 高）
 本书使用 config_db 设置 sequencer 某个 phase 的 default sequence。 default_sequence 是"预约剧本"：提前用 config_db 告诉 sequencer"你的 main_phase 一到，自动跑这个 sequence"，不用手工 start。
 ```systemverilog
@@ -1214,7 +1215,7 @@ uvm_config_db#(uvm_object_wrapper)::set(
     my_sequence::type_id::get()        // (4)值：sequence 的类型句柄（不是实例！）
 );
 ```
-路径中必须包含目标 phase： <code>i_agt.sqr.main_phase</code> 原因是 sequencer 可在不同任务 phase 启动不同 default sequence。
+路径中必须包含目标 phase： `i_agt.sqr.main_phase` 原因是 sequencer 可在不同任务 phase 启动不同 default sequence。
 
 > **为什么路径带 phase 名**：同一个 sequencer 可在不同 phase 启动不同序列——`i_agt.sqr.main_phase` 挂主测试序列、`i_agt.sqr.reset_phase` 挂复位序列。
 **相对路径与绝对路径**
@@ -1249,7 +1250,7 @@ uvm_config_db#(uvm_object_wrapper)::set(
 - 有 `this` 的组件（env/test）→ 用相对路径（相对自己）
 - 没有 `this` 的模块（top_tb）→ 用 `null` + 从 `uvm_test_top` 开始的完整路径
 **default_sequence 的 objection**
-教材 UVM 1.1d 示例使用 <code>starting_phase</code>。
+教材 UVM 1.1d 示例使用 `starting_phase`。
 ```systemverilog
 virtual task body();
     if (starting_phase != null)
@@ -1261,7 +1262,7 @@ virtual task body();
         starting_phase.drop_objection(this);
 endtask
 ```
-先判断 null，是因为 sequence 也可能通过手工 <code>start</code> 启动，此时 <code>starting_phase</code> 不一定有效。
+先判断 null，是因为 sequence 也可能通过手工 `start` 启动，此时 `starting_phase` 不一定有效。
 > **版本提醒**：教材基于 UVM 1.1d；其他 UVM 版本对 default sequence 和 starting_phase 的推荐用法可能不同。
 
 ---
@@ -1269,7 +1270,7 @@ endtask
 ## 2.5 建造测试用例（🔴 高）
 ### 2.5.1 加入 base_test（🔴 高）
 **为什么 test 才是树根**
-教学过程中的树根依次是 driver、env。 实际平台通常让 <code>uvm_test</code> 派生类作为根类型。 base_test 负责：
+教学过程中的树根依次是 driver、env。 实际平台通常让 `uvm_test` 派生类作为根类型。 base_test 负责：
 
 - 创建 env。
 - 设置公共配置。
@@ -1312,7 +1313,7 @@ endclass
 ```
 > **为什么用 ERROR 数判断结果**：scoreboard 对比失败、断言失败都会报 `uvm_error`——ERROR 总数 == 0 意味着所有检查都通过。
 **report_phase**
-<code>report_phase</code> 在运行 phase 结束后执行。 适合：
+`report_phase` 在运行 phase 结束后执行。 适合：
 
 - 统计 UVM_ERROR 数量。
 - 输出 PASS/FAIL 标志。
@@ -1321,7 +1322,7 @@ endclass
 - 给日志分析脚本提供统一结果。
 
 注意：
-> 只检查 UVM_ERROR 数量可能不够，项目还应考虑 UVM_FATAL、scoreboard 残留和协议超时。
+只检查 UVM_ERROR 数量可能不够，项目还应考虑 UVM_FATAL、scoreboard 残留和协议超时。
 **加入 base_test 后的 UVM 树**
 ```text
 uvm_test_top : my_caseN / base_test    ← 树根（run_test 创建，动态替换 test）
@@ -1402,7 +1403,7 @@ class case1_sequence extends uvm_sequence #(my_transaction);  // 测试1 的剧�
     endtask
 endclass
 ```
-<code>uvm_do_with</code> 在 transaction 原约束基础上加入本次随机化的临时约束。 它适合把“测试场景要求”放在 sequence 中，而不是修改 transaction 的通用合法约束。
+`uvm_do_with` 在 transaction 原约束基础上加入本次随机化的临时约束。 它适合把“测试场景要求”放在 sequence 中，而不是修改 transaction 的通用合法约束。
 **命令行选择 test**
 top_tb 只保留：
 ```systemverilog
@@ -1410,7 +1411,7 @@ initial begin
     run_test();                   // 不在源码中写死具体 test 类型（空参 = 从命令行读）
 end
 ```
-运行 case0： <code>&lt;sim_command&gt; ... +UVM_TEST_NAME=my_case0</code> 运行 case1： <code>&lt;sim_command&gt; ... +UVM_TEST_NAME=my_case1</code> 这样切换 test 不需要修改和重新编译顶层源码。 前提是目标 test 已：
+运行 case0： `<sim_command> ... +UVM_TEST_NAME=my_case0` 运行 case1： `<sim_command> ... +UVM_TEST_NAME=my_case1` 这样切换 test 不需要修改和重新编译顶层源码。 前提是目标 test 已：
 
 - 被编译。
 - 使用 factory 宏注册。
@@ -1490,7 +1491,7 @@ function void my_env::connect_phase(uvm_phase phase);
     `uvm_info("PATH", o_agt.mon.get_full_name(), UVM_LOW)   // 打印 monitor 完整路径
 endfunction
 ```
-> 这两段是**调试神器**：树打不出来 = 组件没建/没挂对；路径和你 config_db 里写的对不上 = set 路径写错（最常见 bug）。
+这两段是**调试神器**：树打不出来 = 组件没建/没挂对；路径和你 config_db 里写的对不上 = set 路径写错（最常见 bug）。
 
 如果仿真卡住，按数据流方向排查：
 

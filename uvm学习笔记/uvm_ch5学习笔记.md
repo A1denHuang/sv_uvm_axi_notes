@@ -80,9 +80,9 @@ endtask
 
 task phase 可包含：
 
-- <code>#delay</code>。
-- <code>@event</code>。
-- <code>wait</code>。
+- `#delay`。
+- `@event`。
+- `wait`。
 - blocking TLM get/put。
 - fork/join 并发进程。
 
@@ -106,7 +106,7 @@ flowchart TD
     REP --> FIN["final<br/>清理"]
 ```
 
-<code>run_phase</code> 与 12 个 run-time phase 并行。
+`run_phase` 与 12 个 run-time phase 并行。
 
 ---
 
@@ -275,7 +275,7 @@ flowchart TD
 "快的等慢的"不是 A 主动等待，而是 phase 完成条件是所有参与者都完成（rendezvous 会合点）；post_main 是独立 phase，计数从 0 重新开始，故 A/B 的 post_main 同时重新 raise 启动。
 
 **run_phase 与 run-time phase 同步**
-<code>run_phase</code> 与 12 个动态 phase 并行——两套独立运行的体系：
+`run_phase` 与 12 个动态 phase 并行——两套独立运行的体系：
 
 ```text
 体系 A：run_phase              ← 一条线，从 start_of_simulation 一路跑到 extract 前
@@ -366,7 +366,7 @@ flowchart TD
     IAGT --> SQR["sqr"]
 ```
 
-可能先完成 <code>i_agt</code> 子树，再访问后续兄弟。
+可能先完成 `i_agt` 子树，再访问后续兄弟。
 
 叔侄 component 的相对顺序也可能受兄弟结点名字和深度优先遍历共同影响。
 
@@ -383,7 +383,7 @@ if (!scb.already_ready)
 ---
 
 ### 5.1.5 super.phase 的内容（⚠️ 未理解，待复习，先跳过）
-是否调用 <code>super.xxxx_phase</code> 取决于父类是否实现了必要行为。
+是否调用 `super.xxxx_phase` 取决于父类是否实现了必要行为。
 
 **build_phase 通常必须调用**
 ```systemverilog
@@ -393,7 +393,7 @@ function void my_driver::build_phase(uvm_phase phase);
 endfunction
 ```
 
-教材特别强调，<code>uvm_component::build_phase</code> 会处理 field automation 的配置应用。
+教材特别强调，`uvm_component::build_phase` 会处理 field automation 的配置应用。
 
 **UVM 基类的其他 phase 多为空**
 uvm_component 的许多默认 phase 只调用旧式空方法或直接 return，因此直接继承 UVM 类时，某些 super 调用在功能上可省略。
@@ -443,7 +443,7 @@ endfunction
 ---
 
 ### 5.1.7 phase 的跳转（🔴 高）
-<code>phase.jump(目标phase)</code> 可让当前 schedule 跳到另一 phase。
+`phase.jump(目标phase)` 可让当前 schedule 跳到另一 phase。
 
 典型场景：运行中检测到 DUT 复位，main_phase 跳回 reset_phase。
 
@@ -648,7 +648,7 @@ monitor 不必自己 raise；同一 phase 中任一 component 的 objection 都�
 
 100 时间后 objection 归零，monitor 的 forever 进程被终止。、
 
-> 这就是"同计数器"的威力：**一个组件的 raise 保护了所有组件**。monitor 只管采集，不需要关心 phase 死活。
+这就是"同计数器"的威力：**一个组件的 raise 保护了所有组件**。monitor 只管采集，不需要关心 phase 死活。
 
 **完全没有 objection**
 
@@ -685,7 +685,7 @@ run_phase 与动态 phase 并行——两条线各有独立的 objection 计数�
 ---
 
 ### 5.2.2 参数 phase 的必要性（🟡 中）
-所有 phase 回调都接收 <code>uvm_phase phase</code>：
+所有 phase 回调都接收 `uvm_phase phase`：
 ```systemverilog
 task main_phase(uvm_phase phase);
 ```
@@ -710,7 +710,7 @@ class my_driver extends uvm_driver;
 endclass
 ```
 
-reset 和 main 是两个不同的 phase 对象，各有自己的 objection 计数器。UVM 调度器跑哪个 phase 就把哪个 phase 对象传进来：raise/drop 中 <code>this</code> 表示"谁在举手"，<code>phase</code> 表示"举到哪个计数器上"。
+reset 和 main 是两个不同的 phase 对象，各有自己的 objection 计数器。UVM 调度器跑哪个 phase 就把哪个 phase 对象传进来：raise/drop 中 `this` 表示"谁在举手"，`phase` 表示"举到哪个计数器上"。
 
 用途：
 
@@ -938,7 +938,7 @@ sequence raise → sequencer total +1
 6. 最后输入完成后，DUT 流水和 scoreboard 是否已排空？
 7. drain time 是否属于正确 phase？
 8. 是否设置了 timeout 防止遗漏 drop 永久挂起？
-9. 是否可用 <code>+UVM_OBJECTION_TRACE</code> 看到来源？
+9. 是否可用 `+UVM_OBJECTION_TRACE` 看到来源？
 10. 是否把永久运行组件错误地当成测试结束控制者？
 
 ---
@@ -1000,7 +1000,7 @@ endclass
 - 子 component 已在 build_phase 创建完成。
 - 递归设置能覆盖完整子树。
 
-<code>set_domain(domain, hier)</code> 中 <code>hier=1</code> 表示递归应用到后代。
+`set_domain(domain, hier)` 中 `hier=1` 表示递归应用到后代。
 
 **不同 domain 独立推进**
 A 在 common domain：

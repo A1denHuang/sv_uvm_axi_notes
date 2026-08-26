@@ -1,5 +1,5 @@
 # UVM实战 第 3 章学习笔记：UVM 基础
-> **核心结论**：UVM 以 <code>uvm_object</code> 作为大多数类的共同基础，以 <code>uvm_component</code> 构造长期存在的验证平台树；field automation 负责对象字段的通用操作，report 机制负责日志策略，config_db 负责沿 UVM 路径传递配置。
+> **核心结论**：UVM 以 `uvm_object` 作为大多数类的共同基础，以 `uvm_component` 构造长期存在的验证平台树；field automation 负责对象字段的通用操作，report 机制负责日志策略，config_db 负责沿 UVM 路径传递配置。
 >
 > **记忆主线**：先分清 object/component -> 再看 component 怎样组成树 -> 再学字段自动化 -> 再学日志过滤与行为 -> 最后掌握 config_db 的路径、覆盖优先级和调试。
 
@@ -22,7 +22,7 @@
 2. 类型继承关系与 UVM 树的父子关系。
 3. config_db 的层次优先级与同层时间优先级。
 
-> **版本背景**：教材示例主要基于 UVM 1.1d。涉及 <code>starting_phase</code>、<code>set_config_*</code> 等内容时，应注意不同 UVM 版本的差异。
+> **版本背景**：教材示例主要基于 UVM 1.1d。涉及 `starting_phase`、`set_config_*` 等内容时，应注意不同 UVM 版本的差异。
 
 ### 零基础阅读提示
 
@@ -38,7 +38,7 @@
 
 ## 3.1 uvm_component 与 uvm_object（🔴 高）
 ### 3.1.1 uvm_component 派生自 uvm_object（🔴 高）
-<code>uvm_component</code> 与 <code>uvm_object</code> 不是并列关系。 真正的关系是：
+`uvm_component` 与 `uvm_object` 不是并列关系。 真正的关系是：
 ```text
 uvm_void
 └── uvm_object
@@ -78,7 +78,7 @@ uvm_void
 
 component 两个最有代表性的特性：
 
-1. 构造时通过 <code>parent</code> 建立树形关系。
+1. 构造时通过 `parent` 建立树形关系。
 2. UVM 自动调用其 phase 方法。
 
 **类型继承与结构层次不要混淆**
@@ -92,21 +92,21 @@ my_driver extends uvm_driver
 drv 实例挂在哪个 component 下面？
 uvm_test_top.env.i_agt.drv
 ```
-同一个 <code>my_driver</code> 类型可以在不同 agent 中创建多个实例，它们类型相同，路径不同。
+同一个 `my_driver` 类型可以在不同 agent 中创建多个实例，它们类型相同，路径不同。
 ### 3.1.2 常用的派生自 uvm_object 的类（🔴 高）
-除 component 分支外，验证环境中的许多短生命周期对象都继承自 <code>uvm_object</code>。
+除 component 分支外，验证环境中的许多短生命周期对象都继承自 `uvm_object`。
 
 | 类别 | 常见基类 | 主要作用 |
 |------|----------|----------|
-| transaction | <code>uvm_sequence_item</code> | 封装一次协议事务 |
-| sequence | <code>uvm_sequence</code> | 组织并产生 sequence item |
-| config object | <code>uvm_object</code> | 集中保存某个组件或环境的配置 |
-| register item | <code>uvm_reg_item</code> | 寄存器访问事务 |
-| register model 类 | <code>uvm_reg*</code> | 描述寄存器、字段、存储器和地址映射 |
-| phase object | <code>uvm_phase</code> | 表示和控制 phase |
+| transaction | `uvm_sequence_item` | 封装一次协议事务 |
+| sequence | `uvm_sequence` | 组织并产生 sequence item |
+| config object | `uvm_object` | 集中保存某个组件或环境的配置 |
+| register item | `uvm_reg_item` | 寄存器访问事务 |
+| register model 类 | `uvm_reg*` | 描述寄存器、字段、存储器和地址映射 |
+| phase object | `uvm_phase` | 表示和控制 phase |
 
 **transaction 应继承 uvm_sequence_item**
-虽然 UVM 中存在 <code>uvm_transaction</code>，用户定义的 transaction 通常仍应直接继承 <code>uvm_sequence_item</code>。
+虽然 UVM 中存在 `uvm_transaction`，用户定义的 transaction 通常仍应直接继承 `uvm_sequence_item`。
 ```systemverilog
 class packet extends uvm_sequence_item;
     rand bit [47:0] dmac;         // 目的 MAC，rand 表示可参与随机化
@@ -122,9 +122,9 @@ endclass
 ```
 原因：
 
-- <code>uvm_sequence_item</code> 已经继承 <code>uvm_transaction</code>。
+- `uvm_sequence_item` 已经继承 `uvm_transaction`。
 - 它增加了 sequence/sequencer 握手所需信息。
-- 可以直接用于 <code>uvm_sequence #(packet)</code> 和 <code>uvm_driver #(packet)</code>。
+- 可以直接用于 `uvm_sequence #(packet)` 和 `uvm_driver #(packet)`。
 
 **sequence 也是 object**
 ```systemverilog
@@ -180,10 +180,10 @@ driver 把 transaction 转换成 DUT 接口信号。 参数化 driver 中常用�
 
 | 成员 | 作用 |
 |------|------|
-| <code>seq_item_port</code> | 从 sequencer 拉取请求并完成握手 |
-| <code>req</code> | 当前请求 item |
-| <code>rsp</code> | 可选响应 item |
-| <code>rsp_port</code> | 发布 response |
+| `seq_item_port` | 从 sequencer 拉取请求并完成握手 |
+| `req` | 当前请求 item |
+| `rsp` | 可选响应 item |
+| `rsp_port` | 发布 response |
 
 ```systemverilog
 class my_driver extends uvm_driver #(packet);
@@ -198,14 +198,14 @@ class my_driver extends uvm_driver #(packet);
 endclass
 ```
 **uvm_monitor**
-monitor 把 DUT 接口信号恢复成 transaction。 <code>uvm_monitor</code> 相比 <code>uvm_component</code> 没有增加很多字段，但继承专用基类能明确组件语义。
+monitor 把 DUT 接口信号恢复成 transaction。 `uvm_monitor` 相比 `uvm_component` 没有增加很多字段，但继承专用基类能明确组件语义。
 ```systemverilog
 class my_monitor extends uvm_monitor;
     uvm_analysis_port #(packet) ap;
     `uvm_component_utils(my_monitor)
 endclass
 ```
-技术上直接继承 <code>uvm_component</code> 也能实现 monitor，但不推荐破坏语义分类。
+技术上直接继承 `uvm_component` 也能实现 monitor，但不推荐破坏语义分类。
 **uvm_sequencer**
 sequencer：
 
@@ -220,9 +220,9 @@ class my_sequencer extends uvm_sequencer #(packet);
 endclass
 ```
 **uvm_scoreboard**
-scoreboard 比较 reference model 和 monitor 的输出。 <code>uvm_scoreboard</code> 也没有增加大量专用 API，但能清楚表达组件职责。
+scoreboard 比较 reference model 和 monitor 的输出。 `uvm_scoreboard` 也没有增加大量专用 API，但能清楚表达组件职责。
 **reference model**
-UVM 没有专门的 <code>uvm_reference_model</code> 类。 reference model 通常直接继承 <code>uvm_component</code>。
+UVM 没有专门的 `uvm_reference_model` 类。 reference model 通常直接继承 `uvm_component`。
 ```systemverilog
 class my_model extends uvm_component;
     `uvm_component_utils(my_model)
@@ -230,18 +230,18 @@ endclass
 ```
 它可以使用 SystemVerilog 算法，也可以通过 DPI 调用 C/C++ 模型。
 **uvm_agent**
-agent 封装同一协议的 sequencer、driver 和 monitor。 <code>uvm_agent</code> 提供 <code>is_active</code>：
+agent 封装同一协议的 sequencer、driver 和 monitor。 `uvm_agent` 提供 `is_active`：
 
 | 值 | 结构 |
 |----|------|
-| <code>UVM_ACTIVE</code> | sequencer + driver + monitor |
-| <code>UVM_PASSIVE</code> | monitor |
+| `UVM_ACTIVE` | sequencer + driver + monitor |
+| `UVM_PASSIVE` | monitor |
 
 agent 的主要价值是协议封装与复用。
 **uvm_env**
 env 容纳平台中固定存在的组件和连接。 不同 test 通常复用同一个 env，只改变配置和 sequence。
 **uvm_test**
-所有具体测试用例通常继承 <code>uvm_test</code> 或项目自己的 <code>base_test</code>。 test 负责：
+所有具体测试用例通常继承 `uvm_test` 或项目自己的 `base_test`。 test 负责：
 
 - 创建 env。
 - 配置平台。
@@ -253,10 +253,10 @@ env 容纳平台中固定存在的组件和连接。 不同 test 通常复用同
 
 | 类是否参数化 | 是否使用 field automation | 注册宏 |
 |--------------|---------------------------|--------|
-| 否 | 否 | <code>uvm_object_utils</code> |
-| 是 | 否 | <code>uvm_object_param_utils</code> |
-| 否 | 是 | <code>uvm_object_utils_begin/end</code> |
-| 是 | 是 | <code>uvm_object_param_utils_begin/end</code> |
+| 否 | 否 | `uvm_object_utils` |
+| 是 | 否 | `uvm_object_param_utils` |
+| 否 | 是 | `uvm_object_utils_begin/end` |
+| 是 | 是 | `uvm_object_param_utils_begin/end` |
 
 普通 object：
 ```systemverilog
@@ -286,10 +286,10 @@ begin/end 之间没有 field 宏在语法上也可以成立，但没有字段自
 
 | 类是否参数化 | 是否使用 field automation | 注册宏 |
 |--------------|---------------------------|--------|
-| 否 | 否 | <code>uvm_component_utils</code> |
-| 是 | 否 | <code>uvm_component_param_utils</code> |
-| 否 | 是 | <code>uvm_component_utils_begin/end</code> |
-| 是 | 是 | <code>uvm_component_param_utils_begin/end</code> |
+| 否 | 否 | `uvm_component_utils` |
+| 是 | 否 | `uvm_component_param_utils` |
+| 否 | 是 | `uvm_component_utils_begin/end` |
+| 是 | 是 | `uvm_component_param_utils_begin/end` |
 
 普通 component：
 ```systemverilog
@@ -306,9 +306,9 @@ class my_driver extends uvm_driver #(packet);
     `uvm_component_utils_end
 endclass
 ```
-component 中使用 field automation 的特殊价值之一，是配合 <code>super.build_phase</code> 自动应用同名配置字段。
+component 中使用 field automation 的特殊价值之一，是配合 `super.build_phase` 自动应用同名配置字段。
 
-> 三个条件缺一不可：**[1] begin/end 版注册宏；[2] 字段用 `uvm_field_*` 登记；[3] build_phase 调用 `super.build_phase(phase)`**。三者齐备时，config_db 同名配置自动填进成员变量，无需手写 get。
+三个条件缺一不可：**[1] begin/end 版注册宏；[2] 字段用 `uvm_field_*` 登记；[3] build_phase 调用 `super.build_phase(phase)`**。三者齐备时，config_db 同名配置自动填进成员变量，无需手写 get。
 
 ```systemverilog
 class my_driver extends uvm_driver #(packet);
@@ -322,12 +322,12 @@ class my_driver extends uvm_driver #(packet);
 endclass
 ```
 
-> test 只需 set：`uvm_config_db#(int)::set(this, "env.i_agt.drv", "pre_num", 100);`  // [5] 同名配置，自动填入 pre_num
+test 只需 set：`uvm_config_db#(int)::set(this, "env.i_agt.drv", "pre_num", 100);`  // [5] 同名配置，自动填入 pre_num
 > 注意：object 无 build_phase，此机制仅 component 可用；自动配置较隐式，重要配置建议显式 get。
 ### 3.1.6 uvm_component 的限制（🟡 中）
 component 虽然继承 object，但由于它是树结点，并非所有 object 操作都适合它。
 **clone 不适合 component**
-object 的 <code>clone()</code> 可以理解为： <code>clone = new + copy</code>（新建一个对象，再把内容复制过去）
+object 的 `clone()` 可以理解为： `clone = new + copy`（新建一个对象，再把内容复制过去）
 
 object 示例：
 
@@ -351,8 +351,8 @@ component clone 存在问题：
 
 | 操作 | 目标对象是否必须先创建 | 是否分配新对象 |
 |------|------------------------|----------------|
-| <code>copy</code> | ✅ 要（先 `new` 出目标） | 否（复制到已有对象里） |
-| <code>clone</code> | ❌ 不用（clone 自己分配） | 是（新建一个） |
+| `copy` | ✅ 要（先 `new` 出目标） | 否（复制到已有对象里） |
+| `clone` | ❌ 不用（clone 自己分配） | 是（新建一个） |
 
 component 已经被正确创建并拥有 parent 后，理论上可以对字段执行 copy；但不要用 copy 复制结构关系。
 
@@ -448,16 +448,16 @@ function void my_env::build_phase(uvm_phase phase);
     );
 endfunction
 ```
-<code>this</code> 使 UVM 得知：
+`this` 使 UVM 得知：
 
-- env 拥有 child <code>i_agt</code>。
-- <code>i_agt</code> 的 parent 是 env。
-- env 的 child 列表中应加入 <code>i_agt</code>。
+- env 拥有 child `i_agt`。
+- `i_agt` 的 parent 是 env。
+- env 的 child 列表中应加入 `i_agt`。
 
 **成员变量关系不等于 UVM parent 关系**
-SystemVerilog 知道 <code>i_agt</code> 是 env 的成员变量，但 UVM 框架不会自动从语言成员关系推导 parent。 parent 必须在 component 创建时显式传递。 错误： <code>i_agt = new(&quot;i_agt&quot;, null);      // 会挂到 uvm_top，而不是当前 env</code> 正确： <code>i_agt = my_agent::type_id::create(&quot;i_agt&quot;, this);</code>
+SystemVerilog 知道 `i_agt` 是 env 的成员变量，但 UVM 框架不会自动从语言成员关系推导 parent。 parent 必须在 component 创建时显式传递。 错误： `i_agt = new("i_agt", null);      // 会挂到 uvm_top，而不是当前 env` 正确： `i_agt = my_agent::type_id::create("i_agt", this);`
 ### 3.2.2 UVM 树的根（🔴 高）
-测试类 <code>uvm_test_top</code> 不是整棵 UVM 树真正的根。 真正的根是全局唯一的 <code>uvm_top</code>。
+测试类 `uvm_test_top` 不是整棵 UVM 树真正的根。 真正的根是全局唯一的 `uvm_top`。
 ```text
 uvm_top : uvm_root
 └── uvm_test_top : my_caseN
@@ -475,13 +475,13 @@ uvm_top : uvm_root
 
 | 结点 | parent |
 |------|--------|
-| <code>uvm_top</code> | null |
-| <code>uvm_test_top</code> | <code>uvm_top</code> |
+| `uvm_top` | null |
+| `uvm_test_top` | `uvm_top` |
 | test 下的 env | test |
 | env 下的 agent/model/scoreboard | env |
 
 **parent 为 null 的 component**
-若创建 component 时 parent 为 null，UVM 会把它挂到 <code>uvm_top</code> 下。 <code>extra_env = my_env::type_id::create(&quot;extra_env&quot;, null);</code> 结果类似：
+若创建 component 时 parent 为 null，UVM 会把它挂到 `uvm_top` 下。 `extra_env = my_env::type_id::create("extra_env", null);` 结果类似：
 ```text
 uvm_top
 ├── uvm_test_top
@@ -493,7 +493,7 @@ uvm_top
 uvm_root root;
 root = uvm_root::get();           // 获取全局唯一 uvm_root
 ```
-也可以使用全局变量 <code>uvm_top</code>。 <code>uvm_root::get()</code> 体现 singleton 模式：系统中只有一个根实例。
+也可以使用全局变量 `uvm_top`。 `uvm_root::get()` 体现 singleton 模式：系统中只有一个根实例。
 ### 3.2.3 层次结构相关函数（🟡 中）
 **get_parent**
 ```systemverilog
@@ -519,7 +519,7 @@ foreach (children[i]) begin
     )
 end
 ```
-<code>get_children</code> 只返回直接孩子，不会自动递归整个子树。
+`get_children` 只返回直接孩子，不会自动递归整个子树。
 **get_first_child 与 get_next_child**
 ```systemverilog
 string child_name;
@@ -532,7 +532,7 @@ if (get_first_child(child_name)) begin
     while (get_next_child(child_name));
 end
 ```
-<code>child_name</code> 是遍历状态变量：
+`child_name` 是遍历状态变量：
 
 - 不必预先赋值。
 - 遍历期间不要随意修改。
@@ -548,19 +548,19 @@ count = get_num_children();
 
 | 函数 | 作用 |
 |------|------|
-| <code>get_parent()</code> | 获取父 component |
-| <code>get_child(name)</code> | 按实例名获取直接 child |
-| <code>get_children(queue)</code> | 获取全部直接 child |
-| <code>get_first_child(name)</code> | 开始 child 迭代 |
-| <code>get_next_child(name)</code> | 继续 child 迭代 |
-| <code>get_num_children()</code> | 获取直接 child 数量 |
-| <code>get_name()</code> | 获取当前实例名 |
-| <code>get_full_name()</code> | 获取完整 UVM 路径 |
+| `get_parent()` | 获取父 component |
+| `get_child(name)` | 按实例名获取直接 child |
+| `get_children(queue)` | 获取全部直接 child |
+| `get_first_child(name)` | 开始 child 迭代 |
+| `get_next_child(name)` | 继续 child 迭代 |
+| `get_num_children()` | 获取直接 child 数量 |
+| `get_name()` | 获取当前实例名 |
+| `get_full_name()` | 获取完整 UVM 路径 |
 
 ---
 
 ## 3.3 field automation 机制（🟡 中）
-field automation 通过 <code>uvm_field_*</code> 宏注册字段，并为这些字段提供通用操作。 主要能力：
+field automation 通过 `uvm_field_*` 宏注册字段，并为这些字段提供通用操作。 主要能力：
 
 - copy。
 - compare。
@@ -574,12 +574,12 @@ field automation 通过 <code>uvm_field_*</code> 宏注册字段，并为这些�
 
 | 字段类型 | 宏 |
 |----------|----|
-| 整数、bit、logic 等 | <code>uvm_field_int</code> |
-| real | <code>uvm_field_real</code> |
-| enum | <code>uvm_field_enum</code> |
-| uvm_object 句柄 | <code>uvm_field_object</code> |
-| event | <code>uvm_field_event</code> |
-| string | <code>uvm_field_string</code> |
+| 整数、bit、logic 等 | `uvm_field_int` |
+| real | `uvm_field_real` |
+| enum | `uvm_field_enum` |
+| uvm_object 句柄 | `uvm_field_object` |
+| event | `uvm_field_event` |
+| string | `uvm_field_string` |
 
 示例：
 ```systemverilog
@@ -600,10 +600,10 @@ endclass
 
 | 动态数组元素 | 宏 |
 |--------------|----|
-| int/bit/byte 等 | <code>uvm_field_array_int</code> |
-| enum | <code>uvm_field_array_enum</code> |
-| object | <code>uvm_field_array_object</code> |
-| string | <code>uvm_field_array_string</code> |
+| int/bit/byte 等 | `uvm_field_array_int` |
+| enum | `uvm_field_array_enum` |
+| object | `uvm_field_array_object` |
+| string | `uvm_field_array_string` |
 
 ```systemverilog
 rand byte payload[];
@@ -613,22 +613,22 @@ rand byte payload[];
 
 | 静态数组元素 | 宏 |
 |--------------|----|
-| int/bit/byte 等 | <code>uvm_field_sarray_int</code> |
-| enum | <code>uvm_field_sarray_enum</code> |
-| object | <code>uvm_field_sarray_object</code> |
-| string | <code>uvm_field_sarray_string</code> |
+| int/bit/byte 等 | `uvm_field_sarray_int` |
+| enum | `uvm_field_sarray_enum` |
+| object | `uvm_field_sarray_object` |
+| string | `uvm_field_sarray_string` |
 
 **队列字段**
 
 | 队列元素 | 宏 |
 |----------|----|
-| int/bit/byte 等 | <code>uvm_field_queue_int</code> |
-| enum | <code>uvm_field_queue_enum</code> |
-| object | <code>uvm_field_queue_object</code> |
-| string | <code>uvm_field_queue_string</code> |
+| int/bit/byte 等 | `uvm_field_queue_int` |
+| enum | `uvm_field_queue_enum` |
+| object | `uvm_field_queue_object` |
+| string | `uvm_field_queue_string` |
 
 **关联数组字段**
-关联数组宏名称同时编码“元素类型”和“索引类型”。 格式可理解为： <code>uvm_field_aa_&lt;value_type&gt;_&lt;index_type&gt;</code> 例如：
+关联数组宏名称同时编码“元素类型”和“索引类型”。 格式可理解为： `uvm_field_aa_<value_type>_<index_type>` 例如：
 ```systemverilog
 int counters[string];
 `uvm_field_aa_int_string(counters, UVM_ALL_ON)
@@ -640,12 +640,12 @@ int counters[string];
 
 常见宏：
 
-- <code>uvm_field_aa_int_string</code>。
-- <code>uvm_field_aa_string_string</code>。
-- <code>uvm_field_aa_object_string</code>。
-- <code>uvm_field_aa_int_int</code>。
-- <code>uvm_field_aa_string_int</code>。
-- <code>uvm_field_aa_object_int</code>。
+- `uvm_field_aa_int_string`。
+- `uvm_field_aa_string_string`。
+- `uvm_field_aa_object_string`。
+- `uvm_field_aa_int_int`。
+- `uvm_field_aa_string_int`。
+- `uvm_field_aa_object_int`。
 
 **宏选择口诀**
 ```text
@@ -663,7 +663,7 @@ dst = packet::type_id::create("dst");
 assert(src.randomize());
 dst.copy(src);                    // 调用者 dst 是复制目标
 ```
-记忆： <code>目标.copy(来源)</code> 目标对象必须先创建。
+记忆： `目标.copy(来源)` 目标对象必须先创建。
 **compare**
 ```systemverilog
 bit same;
@@ -694,9 +694,9 @@ bit_count = tr2.unpack_bytes(bytes);
 
 | 函数 | 流元素类型 |
 |------|------------|
-| <code>pack</code>/<code>unpack</code> | bit |
-| <code>pack_bytes</code>/<code>unpack_bytes</code> | byte |
-| <code>pack_ints</code>/<code>unpack_ints</code> | int |
+| `pack`/`unpack` | bit |
+| `pack_bytes`/`unpack_bytes` | byte |
+| `pack_ints`/`unpack_ints` | int |
 
 所有 pack/unpack 都要关注：
 
@@ -706,7 +706,7 @@ bit_count = tr2.unpack_bytes(bytes);
 - 不应在线上传输的控制字段。
 
 **print**
-<code>tr.print();</code> print 会显示参与打印的注册字段。 调试 transaction 时比逐字段 <code>$display</code> 更统一。
+`tr.print();` print 会显示参与打印的注册字段。 调试 transaction 时比逐字段 `$display` 更统一。
 **clone**
 ```systemverilog
 packet copy_tr;
@@ -715,9 +715,9 @@ $cast(copy_tr, tr.clone());
 //  [2] $cast(...)  → 把 uvm_object 句柄转回 packet 类型，存入 copy_tr
 //  [3] 之后 copy_tr.dmac 就能用了 ✅
 ```
-clone 返回 <code>uvm_object</code> 句柄，所以常需要 <code>$cast</code> 转回具体类型。
+clone 返回 `uvm_object` 句柄，所以常需要 `$cast` 转回具体类型。
 ### 3.3.3 field automation 机制中标志位的使用（🟢 低）
-有些字段需要 print/compare/copy，但不能进入协议 pack。 例如 <code>crc_err</code> 只是测试控制标志，不是以太网帧字段。
+有些字段需要 print/compare/copy，但不能进入协议 pack。 例如 `crc_err` 只是测试控制标志，不是以太网帧字段。
 ```systemverilog
 class packet extends uvm_sequence_item;
     rand bit [31:0] crc;
@@ -733,14 +733,14 @@ class packet extends uvm_sequence_item;
     `uvm_object_utils_end
 endclass
 ```
-这样 <code>crc_err</code>：
+这样 `crc_err`：
 
 - 可以被 print。
 - 可以被 copy。
 - 可以参与 compare。
 - 不会被 pack 到 DUT 接口数据流。
 
-> `UVM_ALL_ON | UVM_NOPACK` 的叠加效果：
+`UVM_ALL_ON | UVM_NOPACK` 的叠加效果：
 
 ```text
 UVM_ALL_ON  = copy ✅ + compare ✅ + print ✅ + pack ✅
@@ -753,17 +753,17 @@ crc_err     = copy ✅ + compare ✅ + print ✅ + pack ❌
 
 | 功能 | 打开 | 关闭 |
 |------|------|------|
-| copy | <code>UVM_COPY</code> | <code>UVM_NOCOPY</code> |
-| compare | <code>UVM_COMPARE</code> | <code>UVM_NOCOMPARE</code> |
-| print | <code>UVM_PRINT</code> | <code>UVM_NOPRINT</code> |
-| record | <code>UVM_RECORD</code> | <code>UVM_NORECORD</code> |
-| pack | <code>UVM_PACK</code> | <code>UVM_NOPACK</code> |
+| copy | `UVM_COPY` | `UVM_NOCOPY` |
+| compare | `UVM_COMPARE` | `UVM_NOCOMPARE` |
+| print | `UVM_PRINT` | `UVM_NOPRINT` |
+| record | `UVM_RECORD` | `UVM_NORECORD` |
+| pack | `UVM_PACK` | `UVM_NOPACK` |
 
 常见组合：
 ```systemverilog
 `uvm_field_int(ctrl, UVM_ALL_ON | UVM_NOPACK)
 ```
-标志本质上是位掩码，因此使用按位或 <code>|</code> 组合。 当同时存在 PACK 与 NOPACK 时，禁止标志用于覆盖对应功能。
+标志本质上是位掩码，因此使用按位或 `|` 组合。 当同时存在 PACK 与 NOPACK 时，禁止标志用于覆盖对应功能。
 **哪些字段通常不应该 pack**
 
 - 错误注入开关。
@@ -803,7 +803,7 @@ class packet extends uvm_sequence_item;
     `uvm_object_utils_end                              // [10] 结束字段登记
 endclass
 ```
-普通帧： <code>assert(tr.randomize() with { is_vlan == 0; });</code> VLAN 帧： <code>assert(tr.randomize() with { is_vlan == 1; });</code> 优点：
+普通帧： `assert(tr.randomize() with { is_vlan == 0; });` VLAN 帧： `assert(tr.randomize() with { is_vlan == 1; });` 优点：
 
 - print 时字段语义明确。
 - compare 失败能定位具体 VLAN 字段。
@@ -812,7 +812,7 @@ endclass
 注意：
 
 - 条件字段结构增加了宏展开复杂度。
-- pack 与 unpack 两侧必须对 <code>is_vlan</code> 有一致认知。
+- pack 与 unpack 两侧必须对 `is_vlan` 有一致认知。
 - unpack 前需要知道当前包是否包含 VLAN 字段。
 
 ---
@@ -832,19 +832,19 @@ UVM report 机制把日志分成三个正交维度：
 
 | 级别 | 数值 |
 |------|------|
-| <code>UVM_NONE</code> | 0 |
-| <code>UVM_LOW</code> | 100 |
-| <code>UVM_MEDIUM</code> | 200 |
-| <code>UVM_HIGH</code> | 300 |
-| <code>UVM_FULL</code> | 400 |
-| <code>UVM_DEBUG</code> | 500 |
+| `UVM_NONE` | 0 |
+| `UVM_LOW` | 100 |
+| `UVM_MEDIUM` | 200 |
+| `UVM_HIGH` | 300 |
+| `UVM_FULL` | 400 |
+| `UVM_DEBUG` | 500 |
 
 显示规则：
 ```text
 消息 verbosity <= 当前阈值 -> 显示
 消息 verbosity > 当前阈值  -> 不显示
 ```
-默认阈值通常为 <code>UVM_MEDIUM</code>。 因此 LOW 和 MEDIUM 显示，HIGH 通常不显示。
+默认阈值通常为 `UVM_MEDIUM`。 因此 LOW 和 MEDIUM 显示，HIGH 通常不显示。
 
 ```text
 uvm_info(..., UVM_LOW)    -> 100 ≤ 200 -> 显示 ✅
@@ -861,12 +861,12 @@ level = env.i_agt.drv.get_report_verbosity_level();  // 查 driver 当前的阈�
 
 **只设置单个 component**
 
-<code>env.i_agt.drv.set_report_verbosity_level(UVM_HIGH);</code> 
+`env.i_agt.drv.set_report_verbosity_level(UVM_HIGH);` 
 
 只影响 driver 一个组件。agent 里的 sqr、mon 不受影响。
 
 **递归设置 component 子树（set + _hier）**
-<code>env.i_agt.set_report_verbosity_level_hier(UVM_HIGH);</code> 影响：
+`env.i_agt.set_report_verbosity_level_hier(UVM_HIGH);` 影响：
 
 - i_agt。
 - i_agt.sqr。
@@ -881,7 +881,7 @@ env.i_agt.drv.set_report_id_verbosity(
     UVM_HIGH
 );
 ```
-只调整该 component 中 ID 为 <code>DRV_DATA</code> 的消息阈值。 递归版本：
+只调整该 component 中 ID 为 `DRV_DATA` 的消息阈值。 递归版本：
 ```systemverilog
 env.i_agt.set_report_id_verbosity_hier(
     "DRV_DATA",
@@ -889,7 +889,7 @@ env.i_agt.set_report_id_verbosity_hier(
 );
 ```
 **命令行设置（不改代码）**
-<code>&lt;sim_command&gt; +UVM_VERBOSITY=UVM_HIGH</code> 
+`<sim_command> +UVM_VERBOSITY=UVM_HIGH` 
 
 全局生效，等价于把所有组件的阈值调到 HIGH。适合临时调试：
 
@@ -906,17 +906,17 @@ build_phase：组件被创建（drv、mon 诞生）
 connect_phase：所有组件已创建完毕 ✅ 可以按路径访问
 ```
 
-- <code>env.i_agt.drv.set_report_verbosity_level(...)</code> 这类写法要通过路径访问后代组件（先点 env，再点 i_agt，再点 drv）→ 这些组件必须已经存在 → 最早只能在 connect_phase 或之后设置。
+- `env.i_agt.drv.set_report_verbosity_level(...)` 这类写法要通过路径访问后代组件（先点 env，再点 i_agt，再点 drv）→ 这些组件必须已经存在 → 最早只能在 connect_phase 或之后设置。
 
-- 如果只设置当前组件自己（比如在 test 里 <code>set_report_verbosity_level(...)</code>，不访问别人），可以更早（build_phase 就能做）。
+- 如果只设置当前组件自己（比如在 test 里 `set_report_verbosity_level(...)`，不访问别人），可以更早（build_phase 就能做）。
 
 ### 3.4.2 重载打印信息的严重性（🟢 低）
 UVM 常见 severity：
 
-- <code>UVM_INFO</code>。
-- <code>UVM_WARNING</code>。
-- <code>UVM_ERROR</code>。
-- <code>UVM_FATAL</code>。
+- `UVM_INFO`。
+- `UVM_WARNING`。
+- `UVM_ERROR`。
+- `UVM_FATAL`。
 
 可把某种 severity 重载为另一种。
 ```systemverilog
@@ -936,7 +936,7 @@ env.i_agt.drv.set_report_severity_id_override(
 ```
 只重载特定 ID 的 warning。
 **命令行重载**
-<code>+uvm_set_severity=&lt;component&gt;,&lt;id&gt;,&lt;old_severity&gt;,&lt;new_severity&gt;</code> 示例： <code>+uvm_set_severity=&quot;uvm_test_top.env.i_agt.drv,DRV_PROTOCOL,UVM_WARNING,UVM_ERROR&quot;</code> 所有 ID 可使用 <code>_ALL_</code>。
+`+uvm_set_severity=<component>,<id>,<old_severity>,<new_severity>` 示例： `+uvm_set_severity="uvm_test_top.env.i_agt.drv,DRV_PROTOCOL,UVM_WARNING,UVM_ERROR"` 所有 ID 可使用 `_ALL_`。
 
 三种重载粒度：
 
@@ -967,17 +967,17 @@ endfunction
 int limit;
 limit = get_report_max_quit_count();
 ```
-教材部分版本接口名称可能显示为 <code>get_max_quit_count</code>；使用时以项目 UVM 版本定义为准。 阈值为 0 通常表示不因计数达到上限而退出。
+教材部分版本接口名称可能显示为 `get_max_quit_count`；使用时以项目 UVM 版本定义为准。 阈值为 0 通常表示不因计数达到上限而退出。
 
 **命令行设置**
 
-<code>+UVM_MAX_QUIT_COUNT=6,NO</code> 含义：
+`+UVM_MAX_QUIT_COUNT=6,NO` 含义：
 
 - 退出阈值为 6。
 - NO 表示后续设置不允许覆盖该值。
 
 ### 3.4.4 设置计数的目标（🟢 低）
-report 消息出现后执行什么操作，由 action 决定。 默认 <code>UVM_ERROR</code> 通常包含 <code>UVM_COUNT</code>。
+report 消息出现后执行什么操作，由 action 决定。 默认 `UVM_ERROR` 通常包含 `UVM_COUNT`。
 
 **方法一：按 severity 设置（整个组件内所有 warning）**
 
@@ -1048,7 +1048,7 @@ env.i_agt.drv.set_report_severity_action(
 | 按 severity+ID | 该 ID 的该 severity | `set_report_severity_id_action` |
 | 移除计数 | 该 severity 不再计数 | `set_report_severity_action(sev, UVM_DISPLAY)` |
 ### 3.4.5 UVM 的断点功能（🟢 低）
-把 action 设置为 <code>UVM_STOP</code>，消息出现时进入仿真器交互调试状态。
+把 action 设置为 `UVM_STOP`，消息出现时进入仿真器交互调试状态。
 ```systemverilog
 env.i_agt.drv.set_report_severity_action(
     UVM_WARNING,
@@ -1106,7 +1106,7 @@ function void base_test::connect_phase(uvm_phase phase);
     );
 endfunction
 ```
-只设置 file 而不加入 <code>UVM_LOG</code>，不会得到预期文件输出。
+只设置 file 而不加入 `UVM_LOG`，不会得到预期文件输出。
 **按 ID 分文件**
 ```systemverilog
 env.i_agt.drv.set_report_id_file(
@@ -1141,15 +1141,15 @@ endfunction
 
 | action | 行为 |
 |--------|------|
-| <code>UVM_NO_ACTION</code> | 不执行任何操作 |
-| <code>UVM_DISPLAY</code> | 输出到标准输出 |
-| <code>UVM_LOG</code> | 输出到已配置日志文件 |
-| <code>UVM_COUNT</code> | 增加 quit count |
-| <code>UVM_EXIT</code> | 退出仿真 |
-| <code>UVM_CALL_HOOK</code> | 调用 report hook |
-| <code>UVM_STOP</code> | 停止并进入交互模式 |
+| `UVM_NO_ACTION` | 不执行任何操作 |
+| `UVM_DISPLAY` | 输出到标准输出 |
+| `UVM_LOG` | 输出到已配置日志文件 |
+| `UVM_COUNT` | 增加 quit count |
+| `UVM_EXIT` | 退出仿真 |
+| `UVM_CALL_HOOK` | 调用 report hook |
+| `UVM_STOP` | 停止并进入交互模式 |
 
-action 是位掩码，可以组合： <code>UVM_DISPLAY | UVM_COUNT | UVM_LOG</code>= "打印 + 计数 + 写文件" 三个行为同时做。
+action 是位掩码，可以组合： `UVM_DISPLAY | UVM_COUNT | UVM_LOG`= "打印 + 计数 + 写文件" 三个行为同时做。
 **默认行为**
 
 | severity | 典型默认 action |
@@ -1168,7 +1168,7 @@ env.i_agt.drv.set_report_severity_action(
 ```
 与提高 verbosity 阈值不同，NO_ACTION 从行为层面关闭信息。
 **report 控制函数命名规律**
-<code>set_report_&lt;severity/id/severity_id&gt;_&lt;verbosity/action/file&gt;</code> 若函数名以 <code>_hier</code> 结尾，通常表示递归应用到 component 子树。 严重性 override 并非所有场景都提供 hier 版本，使用时查当前 UVM API。
+`set_report_<severity/id/severity_id>_<verbosity/action/file>` 若函数名以 `_hier` 结尾，通常表示递归应用到 component 子树。 严重性 override 并非所有场景都提供 hier 版本，使用时查当前 UVM API。
 
 ---
 
@@ -1193,26 +1193,26 @@ endfunction
 ```
 `get_full_name()` = "我在树上的完整地址是什么？" 会返回从根到自己的整条路径，
 
-可能输出： <code>uvm_test_top.env.i_agt.drv</code>
+可能输出： `uvm_test_top.env.i_agt.drv`
 
 **路径由实例名决定**
-<code>drv = my_driver::type_id::create(&quot;driver&quot;, this);</code> 变量名仍是 <code>drv</code>，但路径最后一段是 <code>driver</code>。
+`drv = my_driver::type_id::create("driver", this);` 变量名仍是 `drv`，但路径最后一段是 `driver`。
 ```text
 变量访问：i_agt.drv
 UVM 路径：uvm_test_top.env.i_agt.driver
 ```
-推荐让变量名和实例名一致： <code>drv = my_driver::type_id::create(&quot;drv&quot;, this);</code> 这样代码和日志更容易对应。
+推荐让变量名和实例名一致： `drv = my_driver::type_id::create("drv", this);` 这样代码和日志更容易对应。
 
 | | 是什么 | 出现在哪 |
 |---|---|---|
-| 变量名 <code>drv</code> | class 里的成员变量 | 代码访问（<code>drv.xxx</code>） |
-| 实例名 <code>"driver"</code> | create 时传的字符串 | UVM 路径 / 日志 / config_db |
+| 变量名 `drv` | class 里的成员变量 | 代码访问（`drv.xxx`） |
+| 实例名 `"driver"` | create 时传的字符串 | UVM 路径 / 日志 / config_db |
 
 create 传的字符串才是路径的一部分——**变量叫什么不影响路径**。
 
 **uvm_top 的名字通常不显示**
 
-真正的树根是 <code>uvm_top</code>（<code>uvm_root</code>）。但常规完整路径从 <code>uvm_test_top</code> 开始显示：
+真正的树根是 `uvm_top`（`uvm_root`）。但常规完整路径从 `uvm_test_top` 开始显示：
 
 ```text
 实际结构：uvm_top → uvm_test_top → env → i_agt → drv
@@ -1228,7 +1228,7 @@ uvm_config_db#(...)::set(null, "uvm_test_top.env.i_agt.drv", "vif", input_if);
 // ❌ 不用写 __top__ 之类的前缀
 ```
 
-原因：<code>uvm_top</code> 是 UVM 框架自己的根，固定不变；<code>uvm_test_top</code> 才是你的测试起点，路径写它就够了。
+原因：`uvm_top` 是 UVM 框架自己的根，固定不变；`uvm_test_top` 才是你的测试起点，路径写它就够了。
 
 ### 3.5.2 set 与 get 函数的参数（🔴 高）
 **set**
@@ -1262,7 +1262,7 @@ if (!uvm_config_db#(int)::get(
     `uvm_fatal("NO_CFG", "pre_num was not configured")
 end
 ```
-get 的第二个参数 <code>""</code> 表示"当前实例自身"（不用往上找别人）。get 有返回值：1=成功，0=失败，所以用 <code>if (!get(...))</code> 检查，失败通常 <code>uvm_fatal</code>（配置没到位，平台跑不了）。
+get 的第二个参数 `""` 表示"当前实例自身"（不用往上找别人）。get 有返回值：1=成功，0=失败，所以用 `if (!get(...))` 检查，失败通常 `uvm_fatal`（配置没到位，平台跑不了）。
 **set/get 必须匹配的内容**
 
 | 项目 | 要求 | 对不上会怎样 |
@@ -1276,7 +1276,7 @@ get 的第二个参数 <code>""</code> 表示"当前实例自身"（不用往上
 
 get 第四个变量名不必与 field name 相同，但保持同名更易维护。
 **null 等价于 uvm_root::get()**
-在 top_tb 中没有 <code>this</code> component（module 不是 component），可写：
+在 top_tb 中没有 `this` component（module 不是 component），可写：
 ```systemverilog
 uvm_config_db#(virtual my_if)::set(
     null,                            // [1] context：top_tb 没有 this，用 null
@@ -1296,8 +1296,8 @@ uvm_config_db#(virtual my_if)::set(
 ```
 规律：
 
-- 有 <code>this</code> 的组件（test/env/driver）→ context 用 this，路径写**相对路径**。
-- 没 <code>this</code> 的 module（top_tb）→ context 用 null，路径写**完整路径**（从 uvm_test_top 开始）。
+- 有 `this` 的组件（test/env/driver）→ context 用 this，路径写**相对路径**。
+- 没 `this` 的 module（top_tb）→ context 用 null，路径写**完整路径**（从 uvm_test_top 开始）。
 **灵活拆分 context 和相对路径**
 以下目标可表示同一个 driver：
 ```systemverilog
@@ -1320,7 +1320,7 @@ uvm_config_db#(int)::set(
 
 推荐选择最清晰、最符合当前代码层次的写法：在 env 里就用 env 出发，在 test 里就用 test 出发。
 ### 3.5.3 省略 get 语句（🔴 高）
-component 字段使用 field automation 注册后，<code>super.build_phase</code> 可自动应用同名配置。
+component 字段使用 field automation 注册后，`super.build_phase` 可自动应用同名配置。
 ```systemverilog
 class my_driver extends uvm_driver #(packet);
     int pre_num;
@@ -1359,8 +1359,8 @@ uvm_config_db#(int)::set(
 **自动 get 的三个条件**
 
 1. component 使用 begin/end 版本的注册宏。
-2. 字段使用对应的 <code>uvm_field_*</code> 宏注册。
-3. <code>super.build_phase(phase)</code> 被调用。
+2. 字段使用对应的 `uvm_field_*` 宏注册。
+3. `super.build_phase(phase)` 被调用。
 4. set 的 field name 与成员变量名一致。
 
 set 不能省略。
@@ -1413,13 +1413,13 @@ uvm_test_top     高层，优先级高
 - 具体 test 提供场景级覆盖。
 
 **context 被写成 root 时会发生什么**
-如果 test 和 env 都用 <code>uvm_root::get()</code> 作为 context，它们在资源层次上看起来来自同一高层。 此时更可能由**写入时间**决定结果。 build_phase 自顶向下：
+如果 test 和 env 都用 `uvm_root::get()` 作为 context，它们在资源层次上看起来来自同一高层。 此时更可能由**写入时间**决定结果。 build_phase 自顶向下：
 ```text
 test build 先执行
 env build 后执行
 ```
 env 后写入的值可能覆盖 test 的值。 所以教材建议：
-> 在 component 内调用 set 时，第一参数尽量使用 this；只有无法获得 component this 的 top_tb 才使用 null/root。
+在 component 内调用 set 时，第一参数尽量使用 this；只有无法获得 component this 的 top_tb 才使用 null/root。
 ### 3.5.5 同一层次的多重设置（🔴 高）
 当两次 set 来自同一层次时，通常**后写入者生效**。
 ```systemverilog
@@ -1473,7 +1473,7 @@ endclass
 实际项目遇到复杂组合时，应使用 trace 验证，而不是只凭记忆。
 ### 3.5.6 非直线的设置与获取（🟡 中）
 **直线设置**
-祖先 component 给后代设置： <code>test -&gt; env -&gt; agent -&gt; driver</code> 例如 test 设置 driver。
+祖先 component 给后代设置： `test -> env -> agent -> driver` 例如 test 设置 driver。
 **非直线设置**
 兄弟分支给另一分支设置：
 ```text
@@ -1567,8 +1567,8 @@ uvm_config_db#(virtual my_if)::set(
 "*i_agt*"
 ```
 
-- <code>"uvm_test_top.env.i_agt*"</code>：从根开始写，只有末尾是通配 → 匹配范围可控。
-- <code>"*i_agt*"</code>：通配符在开头 → 匹配范围太大，可能误伤路径中任何含 i_agt 的组件。
+- `"uvm_test_top.env.i_agt*"`：从根开始写，只有末尾是通配 → 匹配范围可控。
+- `"*i_agt*"`：通配符在开头 → 匹配范围太大，可能误伤路径中任何含 i_agt 的组件。
 
 > **原则**：通配符要尽可能保留稳定的路径前缀——前缀越具体，误伤越少。
 ### 3.5.8 check_config_usage（🟢 低）
@@ -1595,7 +1595,7 @@ endfunction
 - build 已结束，可以检查未消费资源。
 
 ### 3.5.9 set_config 与 get_config（🟢 低）
-教材还介绍了旧式的 <code>set/get_config_int</code>、<code>set/get_config_string</code> 和 <code>set/get_config_object</code>。它们在旧版本中可与相应类型的 config_db 操作互通，但支持的类型较少。
+教材还介绍了旧式的 `set/get_config_int`、`set/get_config_string` 和 `set/get_config_object`。它们在旧版本中可与相应类型的 config_db 操作互通，但支持的类型较少。
 ```systemverilog
 set_config_int("env.i_agt.drv", "pre_num", 999);
 void'(get_config_int("pre_num", pre_num));
@@ -1605,7 +1605,7 @@ void'(get_config_int("pre_num", pre_num));
 uvm_config_db#(int)::set(...);
 uvm_config_db#(int)::get(...);
 ```
-命令行仍可使用 <code>+uvm_set_config_int</code> 和 <code>+uvm_set_config_string</code>；整数可带 <code>'b</code>、<code>'o</code>、<code>'d</code>、<code>'h</code> 进制前缀。
+命令行仍可使用 `+uvm_set_config_int` 和 `+uvm_set_config_string`；整数可带 `'b`、`'o`、`'d`、`'h` 进制前缀。
 > **版本提醒**：教材基于 UVM 1.1d；UVM 1.2 后旧式 set/get_config 已不再是推荐写法。
 
 ### 3.5.10 config_db 的调试（🟢 低）
@@ -1625,7 +1625,7 @@ endfunction
 
 输出可能很长，适合定位某个字段是否对目标 component 可见。
 **UVM_CONFIG_DB_TRACE**
-命令行： <code>&lt;sim_command&gt; +UVM_CONFIG_DB_TRACE</code> 它会打印 config_db set/get 的查找过程。 适合分析：
+命令行： `<sim_command> +UVM_CONFIG_DB_TRACE` 它会打印 config_db set/get 的查找过程。 适合分析：
 
 - 谁写入了某个字段。
 - 哪个 component 执行了 get。
@@ -1635,14 +1635,14 @@ endfunction
 
 **推荐调试顺序**
 
-1. 在目标 component 打印 <code>get_full_name()</code>。
+1. 在目标 component 打印 `get_full_name()`。
 2. 检查 set/get 参数化类型。
 3. 检查 field name 拼写。
 4. 检查 set 路径是否匹配真实实例名。
 5. 检查 set 是否早于 get。
-6. 调用 <code>check_config_usage()</code>。
-7. 用 <code>print_config(1)</code> 查看可见资源。
-8. 打开 <code>+UVM_CONFIG_DB_TRACE</code>。
+6. 调用 `check_config_usage()`。
+7. 用 `print_config(1)` 查看可见资源。
+8. 打开 `+UVM_CONFIG_DB_TRACE`。
 9. 检查是否有更高层或更晚的 set 覆盖当前值。
 
 ---

@@ -1,4 +1,4 @@
-# UVM实战 第 4 章学习笔记：UVM 中的 TLM1.0 通信
+﻿# UVM实战 第 4 章学习笔记：UVM 中的 TLM1.0 通信
 > **核心结论**：TLM1.0 用 transaction 和标准端口替代 component 之间的直接变量访问。PORT 表示操作发起端，EXPORT 用于转发接口，IMP 是最终实现端；判断连接方向时看控制流，判断 transaction 方向时看数据流。
 >
 > **记忆主线**：先确定 put/get/transport -> 再确定 blocking/nonblocking -> 发起者使用 PORT -> 层次透传使用 EXPORT -> 最终处理者使用 IMP 或 FIFO。
@@ -160,7 +160,7 @@ uvm_transport_port          #(REQ, RSP);
 ```
 
 **常用 EXPORT**
-EXPORT 与上述 PORT 一一对应，只需把后缀替换为 <code>_export</code>。
+EXPORT 与上述 PORT 一一对应，只需把后缀替换为 `_export`。
 ```systemverilog
 uvm_blocking_put_export       #(T);
 uvm_blocking_get_export       #(T);
@@ -227,7 +227,7 @@ out_port = new(
 );
 ```
 
-默认通常为 <code>min_size=1</code>、<code>max_size=1</code>。
+默认通常为 `min_size=1`、`max_size=1`。
 
 **PORT 与 EXPORT 不能成为完整链路终点**
 PORT/EXPORT 只负责调用或转发，不实现实际 put。
@@ -273,7 +273,7 @@ uvm_blocking_transport_imp #(REQ, RSP, IMP);
 uvm_analysis_imp           #(T, IMP);
 ```
 
-IMP 参数中的 <code>IMP</code> 是实现接口方法的 component 类型。
+IMP 参数中的 `IMP` 是实现接口方法的 component 类型。
 
 **blocking put 的调用链**
 ```text
@@ -283,7 +283,7 @@ A.port.put(tr)          // A 发起
  -> B.put(tr)           // 真正执行的是 B 的 put 方法！
 ```
 
-真正处理 transaction 的是 component B 的 <code>put</code> 方法——IMP 只是"入口"，具体逻辑在 B 里。
+真正处理 transaction 的是 component B 的 `put` 方法——IMP 只是"入口"，具体逻辑在 B 里。
 
 **接收 component**
 ```systemverilog
@@ -302,7 +302,7 @@ class consumer extends uvm_component;
 endclass
 ```
 
-没有定义匹配的 <code>put</code>，编译或展开 IMP 时会报找不到接口方法。
+没有定义匹配的 `put`，编译或展开 IMP 时会报找不到接口方法。
 
 ---
 
@@ -459,7 +459,7 @@ EXPORT 可作为局部链路的起点，也常作为父层暴露子组件接口�
 外部 PORT -> bridge.EXPORT -> bridge/local IMP
 ```
 
-匹配规则与 PORT-IMP 相同：blocking_put_export 最终仍要求实现 <code>put</code>。
+匹配规则与 PORT-IMP 相同：blocking_put_export 最终仍要求实现 `put`。
 
 ---
 
