@@ -1,5 +1,10 @@
 # SV、UVM、AMBA 总线学习笔记
 
+![最后更新](https://img.shields.io/badge/%E6%9C%80%E5%90%8E%E6%9B%B4%E6%96%B0-2026--08--27-orange)
+![License](https://img.shields.io/badge/License-MIT-blue)
+![GitHub Stars](https://img.shields.io/github/stars/qingxuanxx/sv_uvm_axi_notes?style=flat)
+![面经](https://img.shields.io/badge/%E9%9D%A2%E7%BB%8F-74%E7%AF%87-green)
+
 > 数字IC验证（Digital IC Verification）学习笔记：SystemVerilog、UVM、AMBA 总线协议、Linux/Shell/Vim/Makefile/Git 开发工具 + 面试八股 + 校招面经。
 
 ## 内容概览
@@ -88,4 +93,4 @@ sv_uvm_axi_notes/
 - ARM AMBA 3 APB Protocol（IHI 0024）：https://developer.arm.com/documentation/ihi0024
 - ARM AMBA AHB Protocol Specification（IHI 0033）：https://developer.arm.com/documentation/ihi0033
 
-> 最后更新：2026-08-26
+> 最后更新：2026-08-27
