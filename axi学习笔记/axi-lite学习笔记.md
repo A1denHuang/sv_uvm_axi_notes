@@ -16,14 +16,7 @@ AXI4-Lite 是 AXI4 的简化子集，主要用于控制寄存器接口。
 
 > **阅读主线：** 五个通道各自握手；写地址 AW 和写数据 W 可以任意先后；收到两者后才产生写响应 B。
 
-术语说明：
-
-| 本文术语 | 新版 Arm 常用术语 |
-|---|---|
-| Master | Manager / Requester |
-| Slave | Subordinate / Completer |
-
-工程和 IP 文档中仍大量使用 AXI4 的 Master/Slave 命名，本文保留它，便于对照信号方向。
+> **术语说明：本文统一使用传统命名 Master / Slave**（新版规范称 Manager/Subordinate 或 Requester/Completer，含义相同；工程和 IP 文档中仍大量使用 Master/Slave，本文保持一致）。
 
 ---
 

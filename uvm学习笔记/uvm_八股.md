@@ -298,7 +298,7 @@ uvm_component 和 uvm_object 不是并列关系，**uvm_component 继承自 uvm_
 
 config_db 是 UVM 的**配置传递机制**，set 有四个参数：**context（起始上下文）、实例路径、field name（字段名）、value（配置值）**。
 
-**context** 是"谁在调 set"——组件内部有 this 就用 this，top_tb 是 module 没有 this 就用 null；**实例路径**是相对 context 的目标组件路径，比如从 test 出发写 "env.i_agt.drv"，它和第一参数联合确定"配置发给谁"；**field name** 是配置的标签，get 时必须一字不差；**value** 是配置值本身，类型由尖括号里的参数化类型决定，比如 `uvm_config_db#(int)` 就传 int。
+**context** 是"谁在调 set"——组件内部有 this 就用 this，top_tb 是 module 没有 this 就用 null；**实例路径**是相对 context 的目标组件路径，比如从 test 出发写 "env.i_agt.drv"，它和第一参数联合确定"配置发给谁"；**field name** 是配置的标签，get 时必须匹配（支持通配符，但工程上建议精确匹配）；**value** 是配置值本身，类型由尖括号里的参数化类型决定，比如 `uvm_config_db#(int)` 就传 int。
 
 get 时也是四个参数：当前组件、空串（表示自己）、字段名、接收变量。
 
@@ -309,7 +309,7 @@ get 时也是四个参数：当前组件、空串（表示自己）、字段名�
 | 3 field name | 字段名（标签） | 包裹标签 |
 | 4 value | 配置值（内容） | 包裹内容 |
 
-> 一句话：**set 是寄快递（谁寄、寄给谁、标签、内容），get 是收快递；类型、路径、字段名三个钥匙任一不对就收不到**。
+> 一句话：**set 是寄快递（谁寄、寄给谁、标签、内容），get 是收快递；类型、路径、字段名匹配不上就收不到**。
 
 ---
 
@@ -407,7 +407,7 @@ set 和 get 要能对上，需要**四个条件同时满足**，缺一个 get �
 
 1. **参数化类型一致**——set 用 `uvm_config_db#(int)`，get 也必须 `#(int)`，类型不同相当于存在不同柜子里。
 2. **路径要覆盖**——set 的目标路径必须覆盖 get 所在位置（要么是上级路径，要么指向自己）；路径拼写错误最常见，比如 i_agt 写成 i_atg，编译器不报错但永远取不到。
-3. **字段名一致**——set 和 get 的 field name 必须一字不差，包括大小写。
+3. **字段名匹配**——set 和 get 的 field name 要匹配（支持通配符，但工程上建议写全精确匹配，避免误伤）。
 4. **时间顺序**——get 之前必须已有 set 执行过，先寄后收。
 
 排查"配置不生效"就按这四要素查：**先打印 `get_full_name()` 对照真实路径，再核对类型和字段名，然后确认 set 在 get 之前**，最后用 `check_config_usage()` 查"写了但没人读"的配置，或开 `+UVM_CONFIG_DB_TRACE` 追踪。
@@ -603,7 +603,7 @@ UVM 的 phase 分两大类，分水岭是**能不能耗仿真时间**：
 
 两者各有各的 objection 计数，互不干扰：
 
-**第一，只在 main_phase raise、run_phase 没写 objection**——run_phase 照常能运行。因为 run_phase 自己的计数一直是 0，它早就"完成"了；main 的 objection 只影响 main 这条线，两条线各自独立推进。
+**第一，只在 main_phase raise、run_phase 没写 objection**——run_phase 照常能运行。因为 run_phase 自己没被 raise，它的 objection 计数一直是 0，UVM 不会因 main 的 objection 而等待它；main 的 objection 只影响 main 这条线，两条线各自独立推进。
 
 **第二，只在 run_phase raise**——12 个动态 phase 因为没人 raise objection 会被瞬间跳过，但 run_phase 还在跑，测试照样进行；等 run_phase 的 objection 归零才进 extract。
 
@@ -691,7 +691,7 @@ build_phase 自顶向下是**因果必然**，不是约定：phase 调度器调�
 
 **参考答案**
 
-objection 是 UVM 用来**控制 task phase 何时结束**的机制，本质是挂在 phase 上的一个**存活计数**：raise_objection 让计数加一，表示"我还有活没干完，phase 别结束"；drop_objection 让计数减一，表示"我干完了"。计数归零、同时所有 phase 进程都结束，phase 才放行。
+objection 是 UVM 用来**控制 task phase 何时结束**的机制，本质是挂在 phase 上的一个**存活计数**：raise_objection 让计数加一，表示"我还有活没干完，phase 别结束"；drop_objection 让计数减一，表示"我干完了"。**计数归零，phase 才放行**——phase 结束时若还有未完成的线程，UVM 会终止它们，不会永远等下去。
 
 用法标准三件套：干活前 raise、跑耗时的激励、干完 drop。
 
@@ -699,11 +699,11 @@ objection 是 UVM 用来**控制 task phase 何时结束**的机制，本质是�
 
 **第一，没人 raise 的 phase 会被瞬间跳过。** task phase 里写了耗时代码但没人 raise，UVM 可以在零时间立即结束它——所以耗时代码必须有人"保活"，这就是 trace 里 SKIP 的含义。
 
-**第二，应该由最清楚测试边界的一方控制。** driver、monitor 通常是 forever 循环，不知道测试何时结束，不适合控制 objection；sequence 最清楚激励从哪开始、到哪结束，是 UVM 推荐的控制者。
+**第二，应该由最清楚测试边界的一方控制。** driver、monitor 通常是 forever 循环，不知道测试何时结束，不适合控制 objection；通常由 test 或最清楚激励起止的 sequence 控制。
 
 **第三，run_phase 与动态 phase 各有独立计数。** run_phase 的 raise 只保护 run_phase 自己，不影响 main_phase，反过来也一样。所以"只在 main_phase raise、run_phase 没 raise"时，run_phase 照常能运行；两条线互不干扰，进 extract 前两条线都得归零。
 
-> 一句话：**objection 是 task phase 的存活计数——举手干活、放手交班、计数归零才放行；由最清楚测试边界的 sequence 控制；run_phase 与动态 phase 各持各的证。**
+> 一句话：**objection 是 task phase 的存活计数——举手干活、放手交班、计数归零才放行；由最清楚测试边界的 test/sequence 控制；run_phase 与动态 phase 各持各的证。**
 
 ---
 
@@ -824,9 +824,9 @@ sequence 启动后有五个回调按固定顺序执行：pre_start、pre_body、
 
 **第二，p_sequencer 是强类型句柄。** 通过 `uvm_declare_p_sequencer(具体类型)` 宏声明，启动时自动把 m_sequencer 强制转换成用户指定的 sequencer 类型，因此能直接访问自定义字段（如 port_id）和子 sequencer。
 
-**第三，使用注意。** 启动在错误类型的 sequencer 上会转换失败，p_sequencer 为 null，必须先判空；过度依赖 p_sequencer 会把 sequence 绑死到特定 sequencer 类型，降低可复用性——通用 sequence 应优先用 config_db 传参。
+**第三，使用注意。** 启动在错误类型的 sequencer 上，类型转换会失败并报错/fatal（不是静默变成 null 后自己判空）；过度依赖 p_sequencer 会把 sequence 绑死到特定 sequencer 类型，降低可复用性——通用 sequence 应优先用 config_db 传参。
 
-> 一句话：**m_sequencer 是通用句柄（访问不了自定义字段），p_sequencer 是宏生成的强类型句柄（能访问，但要判空、别滥用，否则牺牲可复用性）。**
+> 一句话：**m_sequencer 是通用句柄（访问不了自定义字段），p_sequencer 是宏生成的强类型句柄（能访问，但类型不匹配会报错、别滥用，否则牺牲可复用性）。**
 
 ---
 
@@ -865,21 +865,21 @@ sequence 启动后有五个回调按固定顺序执行：pre_start、pre_body、
 
 **考点**
 
-- driver 的 seq_item_port 机制
-- 绕过 sequencer 直接握手
-- 应用场景与代价
+- 脱离 sequencer 的激励发送方式
+- mailbox / TLM 通道等替代机制
+- 标准 start_item/finish_item 对 sequencer 的依赖
 
 **参考答案**
 
-正常流程是 sequence 经过 sequencer 仲裁再交给 driver，但某些场景（比如简单的单 sequence 环境）可以让 sequence 绕过 sequencer，直接和 driver 的 seq_item_port 握手。
+正常流程是 sequence 经过 sequencer 仲裁再交给 driver（start_item/finish_item 依赖 sequencer 授权和转发）。如果要脱离 sequencer 直接向 driver 发事务，标准做法是**改用 mailbox、TLM FIFO 或自定义 TLM 通道**：driver 侧从这些通道里取 item，sequence 侧把 item 推进去——这样不经过 sequencer 仲裁，双方通过共享通道直连。
 
-**做法**：driver 侧的 seq_item_port 是一个端口，它可以直接 connect 到一个 sequencer，也可以被 sequence 直接"借用"——sequence 通过持有该端口的句柄，直接调 get_next_item/item_done 对应的发送接口（如 start_item/finish_item 的底层），跳过仲裁。
+**第一，为什么不能直接"借用"driver 的 seq_item_port。** seq_item_port 是 driver 与 sequencer 之间按 UVM 协议工作的端口，sequence 直接去调它的底层接口属于绕过机制、不标准，容易破坏握手机制，面试/工程上都不推荐。
 
-**适用场景**：没有多 sequence 竞争、不需要仲裁的单激励环境；减少 sequencer 这一层开销。
+**第二，替代方案。** 用 mailbox 或 TLM FIFO 做直连：driver 在 run_phase 里阻塞取件（mailbox.get / tlm_fifo.get），sequence 在 body 里 push 事务——清晰、标准、可复用。
 
-**代价**：失去了仲裁和调度能力，多个 sequence 并发时不可用——本质是用"少一层调度"换"简化结构"。
+**第三，代价。** 失去 sequencer 的仲裁和调度能力，多个 sequence 并发时不可用——本质是用"少一层调度"换"简化结构"。
 
-> 一句话：**脱离 sequencer 直接发 = sequence 绕过仲裁、直接和 driver 的 seq_item_port 握手——单激励简化可以，多 sequence 并发不可用。**
+> 一句话：**脱离 sequencer 发激励，标准做法是改用 mailbox/TLM 通道直连 driver，而不是直接借用 seq_item_port 绕开机制——单激励简化可以，多 sequence 并发不可用。**
 
 ---
 
@@ -907,15 +907,15 @@ sequence 启动后有五个回调按固定顺序执行：pre_start、pre_body、
 
 **参考答案**
 
-virtual sequence 是**自己不产生激励的 sequence**——body 里启动多个真实子 sequence，分别派到不同 sequencer，用于**协调多个接口**的测试场景。
+virtual sequence 是**通常自己不产生激励的 sequence**——body 里启动多个真实子 sequence，分别派到不同 sequencer，用于**协调多个接口**的测试场景。
 
-**第一，和普通 sequence 的区别。** 普通 sequence 直接产生 transaction、只能绑一个 sequencer；virtual sequence 自己不发 transaction，body 里用 uvm_do_on 启动子 sequence。"virtual" 指它不对应任何物理接口，是"虚拟地"协调多个真实 sequence。
+**第一，和普通 sequence 的区别。** 普通 sequence 通常直接产生 transaction、通常只绑一个 sequencer；virtual sequence 通常自己不产生 transaction，body 里用 uvm_do_on 启动子 sequence。"virtual" 指它不对应任何物理接口，是"虚拟地"协调多个真实 sequence。
 
 **第二，怎么协调多个 sequencer。** virtual sequence 通过 p_sequencer（宏声明的强类型句柄）访问 virtual sequencer，从中拿到各真实 sequencer 的句柄（p_bus_sqr、p_eth_sqr），再用 uvm_do_on 把子 sequence 派过去。virtual sequencer 是"句柄收纳盒"——只存句柄、不直接连 driver，env 在 connect 时把 agent 的真实 sequencer 塞进去。
 
 **第三，子 sequence 之间怎么同步。** 顺序同步靠代码顺序（uvm_do_on 阻塞，前一个结束才启动下一个）；并行同步用 fork/join（join 等全部、join_any 等一个、join_none 不等要收尾）；握手式同步用 uvm_event 的 trigger/wait_trigger。
 
-> 一句话：**virtual sequence 是总指挥——自己不产生激励，经 p_sequencer 拿到 virtual sequencer 里的真实 sequencer 句柄，用 uvm_do_on 派发子 sequence 协调多个接口；子 sequence 同步靠代码顺序/fork/uvm_event。**
+> 一句话：**virtual sequence 是总指挥——通常自己不产生激励，经 p_sequencer 拿到 virtual sequencer 里的真实 sequencer 句柄，用 uvm_do_on 派发子 sequence 协调多个接口；子 sequence 同步靠代码顺序/fork/uvm_event。**
 
 ---
 

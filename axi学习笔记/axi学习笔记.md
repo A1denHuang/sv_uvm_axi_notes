@@ -18,14 +18,14 @@
 
 > **阅读主线：** 先掌握五通道握手，再学习一个地址如何展开成多个 beat（burst），最后理解 ID 如何把多笔 outstanding 事务区分开。
 
-术语对照：
+> **术语说明：本文统一使用传统命名 Master / Slave**（新版规范称 Manager/Subordinate，含义相同；工程和 IP 文档中仍大量使用 Master/Slave，本文保持一致）。
 
-| 传统 AXI4 资料 | 新版 Arm 术语 | 本文用法 |
-|---|---|---|
-| Master | Manager | 主要写 Master，首次出现时说明 |
-| Slave | Subordinate | 主要写 Slave |
-| Transaction | Transaction | 完整读或写事务 |
-| Transfer / Beat | Transfer / Beat | 一次通道握手传输的数据单元 |
+术语对照（其余术语）：
+
+| 术语 | 含义 |
+|---|---|
+| Transaction | 完整读或写事务 |
+| Transfer / Beat | 一次通道握手传输的数据单元 |
 
 ---
 
