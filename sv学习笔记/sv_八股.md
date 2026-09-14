@@ -52,6 +52,7 @@
 - 平头哥 · 数字IC验证 · 校招 · 一面（wire、reg、logic 三者的区别）
 - 集益威 · 数字IC验证 · 校招 · 一面（logic、reg、wire 三者的区别）
 - 泰凌微 · 数字IC验证 · 实习（logic 与 bit 的区别，logic 额外特性以及和 wire 的区别）
+- 泰凌微 · 数字IC验证 · 校招 · 一面（inout 端口能否用 logic 类型）
 - 面试书《Cracking Digital VLSI Verification Interview》· 第4章 Q18（对应题目：reg、wire 与 logic 的区别）
 
 **考点**
@@ -88,6 +89,8 @@
 
 - 泰凌微 · 数字IC验证 · 校招 · 一面（logic 与 bit 的核心区别）
 - 泰凌微 · 数字IC验证 · 实习（logic 与 bit 的区别）
+- 豪威科技 · 数字IC验证 · 校招 · 一面（四值逻辑 vs 二值逻辑：初值问题）
+- 平头哥 · 数字IC验证 · 秋招 · 笔试（bit/int/logic/byte 差异，检测 x 态传播用哪个类型）
 - 面试书《Cracking Digital VLSI Verification Interview》· 第4章 Q19（对应题目：bit 与 logic 数据类型）
 
 **考点**
@@ -153,6 +156,7 @@ packed 数组必须由可打包的位类型组成，类句柄不能放进去。
 - 泰凌微 · 数字IC验证 · 校招 · 一面（动态数组与队列的区别）
 - 知存科技 · 数字IC验证 · 校招（动态数组、队列、关联数组）
 - 泰凌微 · 数字IC验证 · 实习（动态数组、关联数组、队列的区别）
+- 合见工软 · 数字IC验证 · 校招 · 一面（动态数组的使用优势）
 - 面试书《Cracking Digital VLSI Verification Interview》· 第4章 Q21（对应题目：大数组建模：动态数组 vs 关联数组）
 
 **考点**
@@ -252,6 +256,8 @@ if (pending.exists(addr))
 - 通用 · 数字IC验证 · 实习 · 基础面经（function 与 task 的区别）
 - ArmChina · 数字IC设计验证 · 校招 · 三面（task 和 function 区别）
 - 泰凌微 · 数字IC验证 · 实习（task 与 function 的区别、常用数据类型转换函数）
+- 汇顶科技 · 数字IC验证 · 校招 · 一面（function 和 task 的区别）
+- 芯动科技 · 数字IC验证 · 校招 · 笔试（task 和 function 的关系）
 - 面试书《Cracking Digital VLSI Verification Interview》· 第4章 Q17（对应题目：task 与 function 的区别）
 
 **考点**
@@ -286,6 +292,8 @@ if (pending.exists(addr))
 **题目来源**
 
 - 合见工软 · 数字IC验证 · 校招 · 一面（函数重载 function overloading 的实现方式）
+- 泰凌微 · 数字IC验证 · 校招 · 一面（重载 overload 的条件）
+- 昆仑芯 · 数字IC验证 · 校招 · 二面（SV 中重载的实现方式）
 - 面试书《Cracking Digital VLSI Verification Interview》· 第3章 Q44（对应题目：方法重载 Overloading 与方法重写 Overriding）
 
 **考点**
@@ -323,6 +331,7 @@ int result = calc(.b(4), .a(3));       // 按名传参
 
 - 泰凌微 · 数字IC验证 · 校招 · 一面（interface 的作用与使用场景）
 - 乐鑫科技 · 数字IC验证 · 校招 · 一面（interface 和 DUT 连接）
+- 乐鑫科技 · 数字IC验证 · 校招 · 笔试（interface 接口基础用法）
 - 面试书《Cracking Digital VLSI Verification Interview》· 第4章 Q41（对应题目：接口 interface）
 
 **考点**
@@ -471,6 +480,7 @@ if (!pkt.randomize())
 - 豪威科技 · 数字IC验证 · 校招 · 一面（constraint 中 dist 的几种权重约束）
 - 乐鑫科技 · 数字IC验证 · 校招 · 一面（约束变量权重分配）
 - 昕原 · 数字IC验证 · 实习（信号取值 h0/h4/hF 概率各 30%、其余总概率 10% 如何实现随机化——dist 权重）
+- 字节跳动 · AI芯片研发 · 校招 · 一面（约束数组元素 100~1000，前段权重更高）
 - 面试书《Cracking Digital VLSI Verification Interview》· 第4章 Q49（对应题目：unique 约束）
 
 **考点**
@@ -532,6 +542,8 @@ constraint c {
 **题目来源**
 
 - 字节跳动 · 数字IC验证 · 校招 · SOC方向（动态数组大小的约束方式）
+- 小米 · 处理器验证 · 校招（随机生成 10bit 数据，恰好 3bit 为 1）
+- 字节跳动 · 数字IC验证 · 校招 · 一面（约束生成 5~10 元素单峰数组，左递增右递减）
 - 面试书《Cracking Digital VLSI Verification Interview》· 第4章 Q53-Q56（对应题目：约束动态数组、降序数组、随机唯一数组、$countones 约束）
 
 **考点**
@@ -577,6 +589,9 @@ endclass
 - 达摩院 · 数字IC验证 · 校招 · 一面（三类 fork join 语句的区别）
 - 泰凌微 · 数字IC验证 · 实习（三种 fork 语句的区别）
 - 行云集成电路 · 数字IC验证 · 实习（fork join / join_any / join_none 三者区别）
+- 集益威 · 数字IC验证 · 秋招（fork 系列语句区别）
+- 昆仑芯 · 数字IC验证 · 秋招 · 一面（通信机制、三种 fork）
+- 昆仑芯 · 数字IC验证 · 秋招 · 二面（fork join 线程控制）
 - 面试书《Cracking Digital VLSI Verification Interview》· 第4章 Q57（对应题目：fork-join / fork-join_any / fork-join_none）
 
 **考点**
@@ -611,6 +626,7 @@ endclass
 
 - 泰凌微 · 数字IC验证 · 校招 · 一面（挂起后阻塞等待所有线程结束的实现方式）
 - 达摩院 · 数字IC验证 · 校招 · 一面（终止 fork join_none 创建的进程的方法）
+- 泰凌微 · 数字IC验证 · 实习（fork join 内 while(1) 循环的终止实现）
 - 面试书《Cracking Digital VLSI Verification Interview》· 第4章 Q58（对应题目：wait fork 与 disable fork）
 
 **考点**
@@ -648,6 +664,7 @@ end join
 **题目来源**
 
 - 豪威科技 · 数字IC验证 · 校招 · 一面（fork_join_none 代码题，分析输出结果）
+- 沐曦 · 数字IC验证 · 校招 · 笔试（fork-join_none 线程打印输出，缺 automatic 时异常）
 - 面试书《Cracking Digital VLSI Verification Interview》· 第4章 Q60、Q61（对应题目：线程中的共享变量陷阱；fork 内嵌 for 循环产生几个并行进程）
 
 **考点**
@@ -685,6 +702,7 @@ wait fork;
 - 字节跳动 · 数字IC验证 · 实习 · 高频题（旗语 semaphore 的含义与典型使用场景）
 - 昆仑芯 · 数字IC验证 · 校招 · 一面（什么是 semaphore）
 - 集益威 · 数字IC验证 · 校招 · 一面（是否使用过旗语 semaphore）
+- 通用 · 数字IC验证 · 实习 · 基础面经（线程同步方式：event、旗语 semaphore）
 - 面试书《Cracking Digital VLSI Verification Interview》· 第4章 Q66（对应题目：信号量 semaphore）
 
 **考点**
@@ -720,6 +738,7 @@ bus_lock.put(1);
 **题目来源**
 
 - 小鹏汽车 · IP验证 · 校招（mailbox 的定义与典型使用场景）
+- 国科微 · 数字IC验证 · 实习（driver 如何利用 mailbox 完成 ID 解耦）
 - 面试书《Cracking Digital VLSI Verification Interview》· 第4章 Q67、Q68（对应题目：信箱 mailbox；有界与无界 mailbox）
 
 **考点**
@@ -758,6 +777,9 @@ mbx.get(pkt);
 - 芯动科技 · 数字IC验证 · 校招（讲解多态时结合 virtual 关键字说明子类重写）
 - 字节跳动 · AI芯片研发 · 校招 · 一面（父类子类句柄关系；virtual 实现多态）
 - 行云集成电路 · 数字IC验证 · 实习（面向对象多态的理解）
+- 豪威科技 · 数字IC验证 · 校招 · 一面（父类句柄与子类句柄互相赋值，分析输出）
+- 达摩院 · 数字IC验证 · 校招（多态概念、virtual 用法、父类/子类指针指向规则）
+- 芯动科技 · 数字IC验证 · 校招 · 一面（OOP 多态理解）
 - 面试书《Cracking Digital VLSI Verification Interview》· 第4章 Q74-Q76（对应题目：派生类覆盖是否必须加 virtual；基类句柄指向派生类对象；virtual 函数的调用顺序）
 
 **考点**
@@ -795,6 +817,12 @@ b.print();
 - 小鹏汽车 · IP验证 · 校招（代码覆盖率与功能覆盖率的分类，是否做过断言验证）
 - 芯原 · 数字IC验证 · 校招（功能覆盖率与代码覆盖率的区别）
 - 地平线 · 数字IC验证 · 校招（功能覆盖率与代码覆盖率区别）
+- 大疆 · 数字IC验证 · 校招（多种覆盖率区别）
+- 某TPU公司 · 数字IC验证 · 校招（代码覆盖率与功能覆盖率的关联）
+- 乐鑫科技 · 数字IC验证 · 校招 · 笔试（代码/分支/条件/功能覆盖率的定义与提升方法）
+- 兆易创新 · 数字IC验证 · 校招（code coverage 的组成）
+- 通用 · 数字IC验证 · 实习 · 面试题汇总（功能覆盖率与代码覆盖率的细分类型）
+- 通用 · 数字IC验证 · 实习 · 基础面经（功能覆盖率、代码覆盖率、断言覆盖率）
 - 面试书《Cracking Digital VLSI Verification Interview》· 第6章 Q100（对应题目：代码覆盖率与功能覆盖率的区别）
 
 **考点**
@@ -827,6 +855,12 @@ b.print();
 - 某公司 · 数字IC验证 · 实习 · 一面（covergroup 所使用的 item 来源、内部成员变量；现场手写 coverpoint）
 - 达摩院 · 数字IC验证 · 校招（covergroup 相关代码编写）
 - 昕原 · 数字IC验证 · 实习（指定两个数值时如何做覆盖率收集）
+- 豪威科技 · 数字IC验证 · 校招 · 一面（交叉覆盖率相关知识点）
+- 芯原 · 数字IC验证 · 校招（功能覆盖率的 bins 设计，是否实现 cross）
+- 泰凌微 · 数字IC验证 · 校招 · 一面（功能覆盖率的配置项与设计思路）
+- 泰凌微 · 数字IC验证 · 校招 · 一面二面（覆盖率收集 bins）
+- 芯动科技 · 数字IC验证 · 校招 · 一面（功能覆盖率写法；覆盖率采样信号选择）
+- 字节跳动 · AI芯片研发 · 校招 · 一面（覆盖 array[0] 的 200、300、500、800）
 - 面试书《Cracking Digital VLSI Verification Interview》· 第6章 Q104、Q106（对应题目：功能覆盖率在 SV 中的两种构造；coverpoint 和 bins）
 
 **考点**
@@ -965,6 +999,7 @@ coverpoint state {
 **题目来源**
 
 - 某公司 · 数字IC验证 · 实习 · 一面（covergroup 所使用的 item 来源、内部成员变量）
+- 寒武纪 · 数字IC验证 · 秋招 · 一面（功能覆盖率收集时机）
 - 面试书《Cracking Digital VLSI Verification Interview》· 第6章 Q116、Q120（对应题目：covergroup 有哪几种采样方式；per-instance 与 per-type 的区别）
 
 **考点**
