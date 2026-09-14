@@ -1,24 +1,23 @@
 # SV、UVM、AMBA 总线学习笔记
 
-![最后更新](https://img.shields.io/badge/%E6%9C%80%E5%90%8E%E6%9B%B4%E6%96%B0-2026--08--27-orange)
-![License](https://img.shields.io/badge/License-MIT-blue)
-![GitHub Stars](https://img.shields.io/github/stars/qingxuanxx/sv_uvm_axi_notes?style=flat)
-![面经](https://img.shields.io/badge/%E9%9D%A2%E7%BB%8F-74%E7%AF%87-green)
+![最后更新](https://img.shields.io/badge/%E6%9C%80%E5%90%8E%E6%9B%B4%E6%96%B0-2026--09--14-blue)
+![License](https://img.shields.io/badge/License-MIT-purple)
+![GitHub Stars](https://img.shields.io/github/stars/qingxuanxx/sv_uvm_axi_notes?style=flat&color=yellow)
+![面经](https://img.shields.io/badge/%E9%9D%A2%E7%BB%8F-100%E7%AF%87-orange)
 
-> 数字IC验证（Digital IC Verification）学习笔记：SystemVerilog、UVM、AMBA 总线协议、Linux/Shell/Vim/Makefile/Git 开发工具 + 面试八股 + 校招面经。
+> 数字IC验证（Digital IC Verification）学习笔记：SystemVerilog、UVM、AMBA 总线协议 + 面试八股 + 校招面经。
 
 ## 内容概览
 
 - 📘 **SystemVerilog 学习笔记**：数据类型、随机化、线程通信、面向对象、功能覆盖率（第 2~9 章）
 - 🚀 **UVM 实战学习笔记**：平台搭建、UVM 基础、TLM、phase、sequence、寄存器模型、factory、可重用性（第 1~9 章）
 - 🔌 **AMBA 总线协议**：AXI、AXI-Lite、AXI-Stream、AHB、APB
-- 🛠️ **Linux/Shell/Vim/Makefile/Git 学习笔记**：开发工具
-- 🎯 **面试八股**：SV / UVM / AXI 高频考点（持续积累）
+- 🎯 **面试八股**：SV / UVM / AXI 高频考点（SV 27 题 · UVM 30 题 · AXI 40 题，持续积累）
 - 📄 **面试书笔记**：《Cracking Digital VLSI Verification Interview》整理
-- 📝 **校招面经**：74 篇数字IC验证面试经验（持续更新）
-- 🧩 **场景设计**：模块验证方案、feature 拆分、测试点分解、故障排查
-- ✍️ **笔试真题**：各公司笔试记录与高频考点归纳
-- 🖥️ **手撕代码**：面经手撕题目整理
+- 📝 **校招面经**：100 篇数字IC设计/验证面试经验（设计 5 篇 · 验证 95 篇，持续更新）
+- 🧩 **场景设计**：模块验证方案、feature 拆分、测试点分解、故障排查（待完成）
+- ✍️ **笔试真题**：各公司笔试记录与高频考点归纳（待完成）
+- 🖥️ **手撕代码**：面经手撕题目整理（待完成）
 
 ## 目录
 
@@ -46,18 +45,12 @@ sv_uvm_axi_notes/
 │   ├── uvm_ch9学习笔记.md   # 第9章：UVM 中代码的可重用性
 │   └── uvm_八股.md
 ├── axi学习笔记/        # AMBA 总线协议学习笔记
-│   ├── apb学习笔记.md       # APB 协议
-│   ├── ahb学习笔记.md       # AHB 协议
-│   ├── axi学习笔记.md       # AXI 协议
-│   ├── axi-lite学习笔记.md  # AXI-Lite 协议
-│   ├── axi-stream学习笔记.md # AXI-Stream 协议
+│   ├── apb学习笔记.md
+│   ├── ahb学习笔记.md
+│   ├── axi学习笔记.md
+│   ├── axi-lite学习笔记.md
+│   ├── axi-stream学习笔记.md
 │   └── axi_八股.md
-├── Linux-Shell-Vim-Makefile-Git学习笔记/
-│   ├── linux学习笔记.md
-│   ├── shell学习笔记.md
-│   ├── vim学习笔记.md
-│   ├── makefile学习笔记.md
-│   └── git学习笔记.md
 ├── 面试书_CrackingVLSI/ # 《Cracking Digital VLSI Verification Interview》笔记（10章）
 │   ├── 00_前言与面试准备.md
 │   ├── 01_数字逻辑设计.md
@@ -69,10 +62,12 @@ sv_uvm_axi_notes/
 │   ├── 07_版本控制.md
 │   ├── 08_逻辑推理与谜题.md
 │   └── 09_非技术与行为面试.md
-├── 面经/              # 数字IC验证面试经验（74篇，持续更新）
-├── 手撕/              # 面经手撕代码题目整理
-├── 场景/              # 场景设计题
-└── 笔试/              # 各公司笔试真题与考点积累
+├── 面经/              # 面试经验（100 篇）
+│   ├── 设计/          # 设计方向面经（5 篇）
+│   └── 验证/          # 验证方向面经（95 篇）
+├── 手撕/              # 面经手撕代码题目整理（待完成）
+├── 场景/              # 场景设计题（待完成）
+└── 笔试/              # 各公司笔试真题与考点积累（待完成）
 ```
 
 ## 配套代码
@@ -93,4 +88,4 @@ sv_uvm_axi_notes/
 - ARM AMBA 3 APB Protocol（IHI 0024）：https://developer.arm.com/documentation/ihi0024
 - ARM AMBA AHB Protocol Specification（IHI 0033）：https://developer.arm.com/documentation/ihi0033
 
-> 最后更新：2026-08-27
+> 最后更新：2026-09-14
